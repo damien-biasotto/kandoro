@@ -1,31 +1,41 @@
 module Main exposing (..)
 
 import Browser
+import Browser.Navigation as Nav
 import Html exposing (Html, button, div, h1, text, ul , li)
 import Html.Events exposing (onClick)
 import Time exposing (utc)
 import Task
+import Url
 import Timer as T exposing (Duration, Msg, Timer, newTimer, update)
 
 
+main : Program () Model Msg
 main =
-    Browser.element
-        { init = init
-        , view = view
-        , update = update
-        , subscriptions = subscriptions
-        }
+    Browser.application
+    { init = init
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    , onUrlChange = UrlChanged
+    , onUrlRequest = LinkClicked
+    }
+
+
+
 
 
 type alias Model =
     { timer : T.Timer
     , timezone : Time.Zone
+    , key : Nav.Key
+    , url : Url.Url
     }
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( { timer = (T.newTimer (T.Duration 2) (T.Duration 2) (T.Duration 1)), timezone =  utc }
+init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init _ url key =
+    ( { timer = (T.newTimer (T.Duration 2) (T.Duration 2) (T.Duration 1)), timezone =  utc, key = key, url = url }
     , Task.perform AdjustTimeZone Time.here
     )
 
@@ -38,6 +48,8 @@ type Msg
     | EndTimer T.Timer
     | AddTimestamp Time.Posix
     | AdjustTimeZone Time.Zone
+    | UrlChanged Url.Url
+    | LinkClicked Browser.UrlRequest
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -57,6 +69,19 @@ update msg model =
         AddTimestamp time ->
             ( {model | timer = Tuple.first (T.update <| (T.TimestampTransition model.timer time)) }, Cmd.none)
 
+        LinkClicked urlRequest ->
+            case urlRequest of
+                 Browser.Internal url ->
+                       ( model, Nav.pushUrl model.key (Url.toString url) )
+
+                 Browser.External href ->
+                       ( model, Nav.load href )
+
+        UrlChanged url ->
+             ( { model | url = url }
+             , Cmd.none
+             )
+
 
 
 subscriptions : Model -> Sub Msg
@@ -64,9 +89,11 @@ subscriptions _ =
     Time.every 1000 Tick
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    div []
+    { title = "Kandoro - The Kanban Pomodoro App"
+    , body =  [
+        div []
         [ h1 [] [ text <| T.toString model.timer ]
         , div [] [
             ul [] (li [] [text <| T.getTotalDuration model.timer] :: List.map viewTransition (T.getTransitions model.timer))
@@ -76,6 +103,8 @@ view model =
         , button [ onClick <| RestartTimer model.timer ] [ text "Reset" ]
         , button [ onClick <| EndTimer model.timer ] [ text "End" ]
         ]
+    ]
+    }
 
 
 viewTransition : T.Transition -> Html Msg
