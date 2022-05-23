@@ -66,12 +66,10 @@ resetTimer (Timer timer) =
             .state timer
     in
     Timer
-        { state = Reset
-        , currentValue = 0
-        , maximumDuration = timer.maximumDuration
-        , longBreakDuration = timer.longBreakDuration
-        , shortBreakDuration = timer.shortBreakDuration
-        , transitions = TransitionWithoutTime ( oldState, Reset ) :: timer.transitions
+        { timer
+            | state = Reset
+            , currentValue = 0
+            , transitions = TransitionWithoutTime ( oldState, Reset ) :: timer.transitions
         }
 
 
@@ -82,12 +80,9 @@ startTimer (Timer timer) =
             .state timer
     in
     Timer
-        { state = Running
-        , currentValue = timer.currentValue
-        , maximumDuration = timer.maximumDuration
-        , longBreakDuration = timer.longBreakDuration
-        , shortBreakDuration = timer.shortBreakDuration
-        , transitions = TransitionWithoutTime ( oldState, Running ) :: timer.transitions
+        { timer
+            | state = Running
+            , transitions = TransitionWithoutTime ( oldState, Running ) :: timer.transitions
         }
 
 
@@ -98,12 +93,10 @@ pauseTimer (Timer timer) =
             .state timer
     in
     Timer
-        { state = Paused
-        , currentValue = timer.currentValue
-        , maximumDuration = timer.maximumDuration
-        , longBreakDuration = timer.longBreakDuration
-        , shortBreakDuration = timer.shortBreakDuration
-        , transitions = TransitionWithoutTime ( oldState, Paused ) :: timer.transitions
+        { timer
+            | state = Paused
+            , shortBreakDuration = timer.shortBreakDuration
+            , transitions = TransitionWithoutTime ( oldState, Paused ) :: timer.transitions
         }
 
 
@@ -114,12 +107,9 @@ endTimer (Timer timer) =
             .state timer
     in
     Timer
-        { state = Ended
-        , currentValue = timer.currentValue
-        , maximumDuration = timer.maximumDuration
-        , longBreakDuration = timer.longBreakDuration
-        , shortBreakDuration = timer.shortBreakDuration
-        , transitions = TransitionWithoutTime ( oldState, Ended ) :: timer.transitions
+        { timer
+            | state = Ended
+            , transitions = TransitionWithoutTime ( oldState, Ended ) :: timer.transitions
         }
 
 
@@ -237,12 +227,10 @@ updateTimerStateAndTransitions (Timer timer) newState value =
                 timer.transitions
     in
     Timer
-        { state = newState
-        , currentValue = value
-        , maximumDuration = timer.maximumDuration
-        , shortBreakDuration = timer.shortBreakDuration
-        , longBreakDuration = timer.longBreakDuration
-        , transitions = transitions
+        { timer
+            | state = newState
+            , currentValue = value
+            , transitions = transitions
         }
 
 
