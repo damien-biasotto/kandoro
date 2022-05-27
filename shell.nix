@@ -5,10 +5,12 @@ let
     elmPackages.elm
     elmPackages.elm-language-server
     elmPackages.elm-format
-    elmPackages.elm-test
+    elmPackages.elm-test-rs
     elmPackages.elm-review
     elmPackages.elm-analyse
+    nodejs
     elm2nix
+    watch
   ];
 
 in
