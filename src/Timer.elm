@@ -1,4 +1,4 @@
-module Timer exposing (Duration(..), Msg(..), State(..), Timer, Transition(..), displayTransition, getTotalDuration, getTransitions, newTimer, toString, update)
+module Timer exposing (Duration(..), Msg(..), State(..), Timer, Transition(..), displayTransition, getCurrentValue, getLongBreakDuration, getMaximumDuration, getShortBreakDuration, getState, getStats, getTransitions, newTimer, toString, update)
 
 import Iso8601 exposing (fromTime)
 import Time exposing (millisToPosix, toHour, toMinute, toSecond, utc)
@@ -292,11 +292,6 @@ displayTransition transition =
             "Transitioned from " ++ stateToString from ++ " to " ++ stateToString to
 
 
-getTransitions : Timer -> List Transition
-getTransitions (Timer timer) =
-    timer.transitions
-
-
 filterTransitionByState : State -> Transition -> Bool
 filterTransitionByState state transition =
     case transition of
@@ -307,8 +302,8 @@ filterTransitionByState state transition =
             from == state
 
 
-getTotalDuration : Timer -> String
-getTotalDuration (Timer timer) =
+getStats : Timer -> String
+getStats (Timer timer) =
     let
         completedRun =
             List.length <|
@@ -346,6 +341,9 @@ getTotalDuration (Timer timer) =
                 1000
                     * completedRun
                     * getDurationInSeconds timer.maximumDuration
+
+        manuallyPaused =
+            List.length <| List.filter (filterTransitionByState Paused) timer.transitions
     in
     "Time spent working: "
         ++ toHumanTime workingDurationTimestamp
@@ -353,15 +351,47 @@ getTotalDuration (Timer timer) =
         ++ "Number of completed cycles: "
         ++ String.fromInt completedRun
         ++ " - "
-        ++ "Time spent on pause: "
+        ++ "Time spent on break: "
         ++ toHumanTime totalPauseDurationTimestamp
-        ++ " -  (# Short pause: "
+        ++ " - (# Short break : "
         ++ String.fromInt completedShortbreak
-        ++ " - Total Short pause duration: "
+        ++ " - Total Short break duration: "
         ++ toHumanTime shortbreakDurationTimestamp
-        ++ " - "
-        ++ "# Long pause: "
+        ++ " - # Long break: "
         ++ String.fromInt completedLongbreak
-        ++ " - Total long pause duration: "
+        ++ " - Total long break duration: "
         ++ toHumanTime longBreakDurationTimestamp
+        ++ " - # Manually paused: "
+        ++ String.fromInt manuallyPaused
+        ++ " - Total manually paused duration: "
         ++ ")"
+
+
+getState : Timer -> State
+getState (Timer timer) =
+    timer.state
+
+
+getMaximumDuration : Timer -> Duration
+getMaximumDuration (Timer timer) =
+    timer.maximumDuration
+
+
+getLongBreakDuration : Timer -> Duration
+getLongBreakDuration (Timer timer) =
+    timer.longBreakDuration
+
+
+getShortBreakDuration : Timer -> Duration
+getShortBreakDuration (Timer timer) =
+    timer.shortBreakDuration
+
+
+getCurrentValue : Timer -> Int
+getCurrentValue (Timer timer) =
+    timer.currentValue
+
+
+getTransitions : Timer -> List Transition
+getTransitions (Timer timer) =
+    timer.transitions
