@@ -3,14 +3,8 @@ module Timer exposing (Duration(..), Msg(..), State(..), Timer, Transition(..), 
 import Iso8601 exposing (fromTime)
 import Time exposing (millisToPosix, toHour, toMinute, toSecond, utc)
 
-
 type Duration
     = Duration Int
-
-
-
-{- All possible states for a timer -}
-
 
 type State
     = NotStarted
@@ -21,11 +15,9 @@ type State
     | Ended
     | Reset
 
-
 type Transition
     = TransitionWithoutTime ( State, State )
     | TransitionWithTime ( State, State, Time.Posix )
-
 
 type Timer
     = Timer
@@ -37,7 +29,6 @@ type Timer
         , transitions : List Transition
         }
 
-
 type Msg
     = Start Timer
     | Update Timer
@@ -45,7 +36,6 @@ type Msg
     | Restart Timer
     | End Timer
     | TimestampTransition Timer Time.Posix
-
 
 newTimer : Duration -> Duration -> Duration -> Timer
 newTimer duration long small =
@@ -57,7 +47,6 @@ newTimer duration long small =
         , shortBreakDuration = small
         , transitions = []
         }
-
 
 resetTimer : Timer -> Timer
 resetTimer (Timer timer) =
@@ -72,7 +61,6 @@ resetTimer (Timer timer) =
             , transitions = TransitionWithoutTime ( oldState, Reset ) :: timer.transitions
         }
 
-
 startTimer : Timer -> Timer
 startTimer (Timer timer) =
     let
@@ -84,7 +72,6 @@ startTimer (Timer timer) =
             | state = Running
             , transitions = TransitionWithoutTime ( oldState, Running ) :: timer.transitions
         }
-
 
 pauseTimer : Timer -> Timer
 pauseTimer (Timer timer) =
@@ -99,7 +86,6 @@ pauseTimer (Timer timer) =
             , transitions = TransitionWithoutTime ( oldState, Paused ) :: timer.transitions
         }
 
-
 endTimer : Timer -> Timer
 endTimer (Timer timer) =
     let
@@ -112,11 +98,9 @@ endTimer (Timer timer) =
             , transitions = TransitionWithoutTime ( oldState, Ended ) :: timer.transitions
         }
 
-
 getDurationInSeconds : Duration -> Int
 getDurationInSeconds (Duration int) =
     int
-
 
 getNextTypeOfBreak : List Transition -> State
 getNextTypeOfBreak transitions =
@@ -141,7 +125,6 @@ getNextTypeOfBreak transitions =
             else
                 ShortBreak
 
-
 update : Msg -> ( Timer, Cmd Msg )
 update msg =
     case msg of
@@ -162,7 +145,6 @@ update msg =
 
         TimestampTransition timer time ->
             ( timeStampLatestTransition timer time, Cmd.none )
-
 
 updateTimer : Timer -> Timer
 updateTimer (Timer timer) =
@@ -198,7 +180,6 @@ updateTimer (Timer timer) =
         _ ->
             Timer timer
 
-
 timeStampLatestTransition : Timer -> Time.Posix -> Timer
 timeStampLatestTransition (Timer timer) time =
     case timer.transitions of
@@ -214,7 +195,6 @@ timeStampLatestTransition (Timer timer) time =
                     | transitions =
                         TransitionWithTime ( from, to, time ) :: Maybe.withDefault [] (List.tail timer.transitions)
                 }
-
 
 updateTimerStateAndTransitions : Timer -> State -> Int -> Timer
 updateTimerStateAndTransitions (Timer timer) newState value =
@@ -232,7 +212,6 @@ updateTimerStateAndTransitions (Timer timer) newState value =
             , currentValue = value
             , transitions = transitions
         }
-
 
 stateToString : State -> String
 stateToString state =
@@ -258,7 +237,6 @@ stateToString state =
         Reset ->
             "Reset"
 
-
 toHumanTime : Time.Posix -> String
 toHumanTime time =
     (String.padLeft 2 '0' <|
@@ -276,11 +254,9 @@ toHumanTime time =
                     toSecond utc time
            )
 
-
 toString : Timer -> String
 toString (Timer timer) =
     "Timer state: " ++ stateToString timer.state ++ " - " ++ toHumanTime (millisToPosix <| timer.currentValue * 1000)
-
 
 displayTransition : Transition -> String
 displayTransition transition =
@@ -291,7 +267,6 @@ displayTransition transition =
         TransitionWithoutTime ( from, to ) ->
             "Transitioned from " ++ stateToString from ++ " to " ++ stateToString to
 
-
 filterTransitionByState : State -> Transition -> Bool
 filterTransitionByState state transition =
     case transition of
@@ -300,7 +275,6 @@ filterTransitionByState state transition =
 
         TransitionWithoutTime ( from, _ ) ->
             from == state
-
 
 getStats : Timer -> String
 getStats (Timer timer) =
@@ -366,31 +340,25 @@ getStats (Timer timer) =
         ++ " - Total manually paused duration: "
         ++ ")"
 
-
 getState : Timer -> State
 getState (Timer timer) =
     timer.state
-
 
 getMaximumDuration : Timer -> Duration
 getMaximumDuration (Timer timer) =
     timer.maximumDuration
 
-
 getLongBreakDuration : Timer -> Duration
 getLongBreakDuration (Timer timer) =
     timer.longBreakDuration
-
 
 getShortBreakDuration : Timer -> Duration
 getShortBreakDuration (Timer timer) =
     timer.shortBreakDuration
 
-
 getCurrentValue : Timer -> Int
 getCurrentValue (Timer timer) =
     timer.currentValue
-
 
 getTransitions : Timer -> List Transition
 getTransitions (Timer timer) =

@@ -3,32 +3,12 @@
     <head>
         <meta charset="utf-8">
         <title>Kandoro | Kanban meets Pomodoro</title>
-        <link rel="stylesheet" href="https://unpkg.com/chota@latest">
+        <script src="elm.js"></script>
     </head>
     <body>
-        <style>
-         body.dark {
-             --bg-color: #000;
-             --bg-secondary-color: #131316;
-             --font-color: #f5f5f5;
-             --color-grey: #ccc;
-             --color-darkGrey: #777;
-         }
-        </style>
-
-        <main id="kandoro"></main>
-        <script src="elm.js"></script>
+        <main id="kandoro">Loading ...</main>
         <script>
-         //Enable dark theme
-         if (window.matchMedia &&
-             window.matchMedia('(prefers-color-scheme: dark)').matches) {
-             document.body.classList.add('dark');
-         }
-
-         const app = Elm.Main.init({
-             node: document.getElementById('kandoro'),
-             flags: null
-         })
+            const app = Elm.Main.init({node: document.getElementById('kandoro')});
         </script>
     </body>
 </html>

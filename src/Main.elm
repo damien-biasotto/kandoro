@@ -2,8 +2,13 @@ module Main exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
-import Html exposing (Html, button, div, h1, li, text, ul)
+import Css exposing (..)
+import Html exposing (Html, button, div, footer, h1, h2, h4, header, li, nav, p, text, ul)
+import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Html.Styled exposing (toUnstyled)
+import KandoroTask exposing (KTask, State, getDescription, getTimer, getTitle, newTask)
+import Styles exposing (defaultPalette, style)
 import Task
 import Time exposing (utc)
 import Timer as T exposing (Msg, update)
@@ -92,22 +97,82 @@ subscriptions _ =
     Time.every 1000 Tick
 
 
+viewBoard : Model -> Html Msg
+viewBoard model =
+    div [ class "board" ]
+        [ nav [ class "navbar--app-bar" ]
+            [ h1 [] [ text "Kandoro" ]
+            ]
+        , nav [ class "navbar--board-bar" ] []
+        , div [ class "board--content" ]
+            [ displayList KandoroTask.Todo
+                [ newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
+                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
+                ]
+            , displayList KandoroTask.Doing []
+            , displayList KandoroTask.Done []
+            , displayList KandoroTask.Blocked []
+            ]
+        ]
+
+
+displayList : KandoroTask.State -> List KTask -> Html Msg
+displayList state tasks =
+    let
+        stateAsString =
+            KandoroTask.stateToString state
+    in
+    div [ class <| "board--column board--column__" ++ String.toLower stateAsString ]
+        [ header []
+            [ text stateAsString ]
+        , div
+            [ class <| "board--column--content board--column--content__" ++ String.toLower stateAsString ]
+            [ displayTasksInList tasks ]
+        , footer [] [ text "Add a task" ]
+        ]
+
+
+displayTasksInList : List KTask -> Html Msg
+displayTasksInList tasks =
+    ul [] (List.map displayTaskAsListItem tasks)
+
+
+displayTaskAsListItem : KTask -> Html Msg
+displayTaskAsListItem task =
+    li []
+        [ h4 [] [ text <| getTitle task ]
+        , p [] [ text <| getDescription task ]
+        , footer []
+            [ button [ onClick (StartTimer <| getTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PauseTimer <| getTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartTimer <| getTimer task) ] [ text "Reset task" ]
+            ]
+        ]
+
+
 view : Model -> Browser.Document Msg
 view model =
     { title = "Kandoro - The Kanban Pomodoro App"
     , body =
-        [ div []
-            [ h1 [] [ text <| T.toString model.timer ]
-            , div []
-                [ ul [] (li [] [ text <| T.getStats model.timer ] :: List.map viewTransition (T.getTransitions model.timer))
-                ]
-            , button [ onClick <| StartTimer model.timer ] [ text "Start" ]
-            , button [ onClick <| PauseTimer model.timer ] [ text "Pause" ]
-            , button [ onClick <| RestartTimer model.timer ] [ text "Reset" ]
-            , button [ onClick <| EndTimer model.timer ] [ text "End" ]
-            ]
+        [ toUnstyled <| style defaultPalette
+        , viewBoard model
         ]
     }
+
+
+viewTask : KTask -> Html Msg
+viewTask task =
+    div []
+        [ header []
+            [ h4 [] [ text <| getTitle task ]
+            ]
+        , p [] [ text <| getDescription task ]
+        , footer []
+            [ button [ onClick (StartTimer <| getTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PauseTimer <| getTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartTimer <| getTimer task) ] [ text "Reset task" ]
+            ]
+        ]
 
 
 viewTransition : T.Transition -> Html Msg

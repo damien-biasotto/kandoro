@@ -1,4 +1,4 @@
-module KandoroTask exposing ()
+module KandoroTask exposing (KTask, State(..), Transition, Tag, Comment, newTask, getTitle, getDescription, getTimer, stateToString)
 
 import Timer exposing (Timer, newTimer)
 import Time exposing (Posix)
@@ -32,7 +32,10 @@ type Comment
 type Order
     = Order State Int
 
-type Task
+type User
+    = User String
+
+type KTask
     = Task
     { title : String
     , description : String
@@ -40,16 +43,37 @@ type Task
     , timer : Timer
     , transitions : List Transition
     , comments : List Comment
-    , order
+    , order : Int
     }
 
-newTask : String -> String -> List Tag -> Task
+newTask : String -> String -> List Tag -> KTask
 newTask title content tags
     = Task
         { title = title
         , description = content
         , tags = tags
-        , timer = newTimer (Duration 25) (Duration 15) (Duration 5)
+        , timer = newTimer (Timer.Duration 25) (Timer.Duration 15) (Timer.Duration 5)
         , transitions = []
         , comments = []
+        , order = 0
         }
+
+getTitle : KTask -> String
+getTitle (Task task)
+    = task.title
+
+getDescription : KTask -> String
+getDescription (Task task)
+    = task.description
+
+getTimer : KTask -> Timer
+getTimer (Task task)
+    = task.timer
+
+stateToString : State -> String
+stateToString state
+    = case state of
+        Todo -> "Todo"
+        Doing -> "Doing"
+        Done -> "Done"
+        Blocked -> "Blocked"
