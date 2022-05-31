@@ -108,6 +108,9 @@ viewBoard model =
             [ displayList KandoroTask.Todo
                 [ newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
                 , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
+                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
+                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
+                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
                 ]
             , displayList KandoroTask.Doing []
             , displayList KandoroTask.Done []
@@ -125,9 +128,7 @@ displayList state tasks =
     div [ class <| "board--column board--column__" ++ String.toLower stateAsString ]
         [ header []
             [ text stateAsString ]
-        , div
-            [ class <| "board--column--content board--column--content__" ++ String.toLower stateAsString ]
-            [ displayTasksInList tasks ]
+        , displayTasksInList tasks
         , footer [] [ text "Add a task" ]
         ]
 
