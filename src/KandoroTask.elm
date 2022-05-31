@@ -1,8 +1,8 @@
-module KandoroTask exposing (Comment, KTask, State(..), Tag, Transition, getDescription, getTimer, getTitle, newTask, stateToString)
+module KandoroTask exposing (Comment, KTask, State(..), Tag, Transition, getDescription, getTimer, setTimer, getTitle, newTask, stateToString, getId, getState)
 
 import Time exposing (Posix)
 import Timer exposing (Timer, newTimer)
-
+import UUID exposing (UUID, forName, dnsNamespace)
 
 type State
     = Todo
@@ -41,12 +41,21 @@ type Order
 type User
     = User String
 
+appNamespace : UUID
+appNamespace =
+    forName "https://kandoro.github.io" dnsNamespace
+
+widgetNamespace : UUID
+widgetNamespace =
+    forName "Kandoro" appNamespace
 
 type KTask
     = Task
-        { title : String
+        { id : UUID
+        , title : String
         , description : String
         , tags : List Tag
+        , state : State
         , timer : Timer
         , transitions : List Transition
         , comments : List Comment
@@ -57,7 +66,9 @@ type KTask
 newTask : String -> String -> List Tag -> KTask
 newTask title content tags =
     Task
-        { title = title
+        { id = forName title widgetNamespace
+        , title = title
+        , state = Todo
         , description = content
         , tags = tags
         , timer = newTimer (Timer.Duration 25) (Timer.Duration 15) (Timer.Duration 5)
@@ -66,6 +77,9 @@ newTask title content tags =
         , order = 0
         }
 
+getId : KTask -> UUID
+getId (Task task) =
+    task.id
 
 getTitle : KTask -> String
 getTitle (Task task) =
@@ -81,6 +95,9 @@ getTimer : KTask -> Timer
 getTimer (Task task) =
     task.timer
 
+getState : KTask -> State
+getState (Task task) =
+    task.state
 
 stateToString : State -> String
 stateToString state =
@@ -96,3 +113,7 @@ stateToString state =
 
         Blocked ->
             "Blocked"
+
+setTimer : KTask -> Timer -> KTask
+setTimer (Task task) timer =
+    (Task {task| timer = timer})

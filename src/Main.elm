@@ -6,12 +6,15 @@ import Css exposing (..)
 import Html exposing (Html, button, div, footer, h1, h2, h4, header, li, nav, p, text, ul)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Html.Keyed as Keyed
+import Html.Lazy exposing (lazy)
 import Html.Styled exposing (toUnstyled)
-import KandoroTask exposing (KTask, State, getDescription, getTimer, getTitle, newTask)
+import KandoroTask exposing (KTask, State, getDescription, getId, getState, getTimer, getTitle, newTask, setTimer)
 import Styles exposing (defaultPalette, style)
 import Task
 import Time exposing (utc)
-import Timer as T exposing (Msg, update)
+import Timer as T exposing (Msg, State(..), update)
+import UUID
 import Url
 
 
@@ -28,7 +31,7 @@ main =
 
 
 type alias Model =
-    { timer : T.Timer
+    { tasks : List KTask
     , timezone : Time.Zone
     , key : Nav.Key
     , url : Url.Url
@@ -37,7 +40,17 @@ type alias Model =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( { timer = T.newTimer (T.Duration 2) (T.Duration 2) (T.Duration 1), timezone = utc, key = key, url = url }
+    ( { tasks =
+            [ newTask "Implement Drag and Drop" "To allow a task to change its state and update timer" []
+            , newTask "Allow a task to change its state" "Any state can be set on a task." []
+            , newTask "Add persistence" "Leverage local storage as config and data storage.." []
+            , newTask "Persistence part 2" "Use a backend to store stuff in database Keep the frontend storage for initial rendering?." []
+            , newTask "Finish kandoro" "Use it." []
+            ]
+      , timezone = utc
+      , key = key
+      , url = url
+      }
     , Task.perform AdjustTimeZone Time.here
     )
 
@@ -54,6 +67,34 @@ type Msg
     | LinkClicked Browser.UrlRequest
 
 
+getTasksWithRunningTimers : Model -> List KTask
+getTasksWithRunningTimers model =
+    List.filter (\task -> T.getState (getTimer task) == T.Running) model.tasks
+
+
+getTasksWithNonRunningTimers : Model -> List KTask
+getTasksWithNonRunningTimers model =
+    List.filter (\task -> T.getState (getTimer task) /= T.Running) model.tasks
+
+
+updateTimers : (T.Timer -> T.Msg) -> List KTask -> List KTask
+updateTimers msg tasks =
+    List.map (\task -> setTimer task (Tuple.first (T.update <| msg (getTimer task)))) tasks
+
+
+updateTimer : (T.Timer -> T.Msg) -> T.Timer -> List KTask -> List KTask
+updateTimer msg timer tasks =
+    List.map
+        (\task ->
+            if timer == getTimer task then
+                setTimer task (Tuple.first (T.update <| msg <| getTimer task))
+
+            else
+                task
+        )
+        tasks
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -61,22 +102,22 @@ update msg model =
             ( { model | timezone = zone }, Cmd.none )
 
         Tick _ ->
-            ( { model | timer = Tuple.first (T.update <| T.Update model.timer) }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimers T.Update model.tasks }, Task.perform AddTimestamp Time.now )
 
         StartTimer timer ->
-            ( { model | timer = Tuple.first (T.update <| T.Start timer) }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimer T.Start timer model.tasks }, Task.perform AddTimestamp Time.now )
 
         PauseTimer timer ->
-            ( { model | timer = Tuple.first (T.update <| T.Pause timer) }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimer T.Pause timer model.tasks }, Task.perform AddTimestamp Time.now )
 
         RestartTimer timer ->
-            ( { model | timer = Tuple.first (T.update <| T.Restart timer) }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimer T.Restart timer model.tasks }, Task.perform AddTimestamp Time.now )
 
         EndTimer timer ->
-            ( { model | timer = Tuple.first (T.update <| T.End timer) }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimer T.End timer model.tasks }, Task.perform AddTimestamp Time.now )
 
         AddTimestamp time ->
-            ( { model | timer = Tuple.first (T.update <| T.TimestampTransition model.timer time) }, Cmd.none )
+            ( { model | tasks = updateTimers (T.TimestampTransition time) model.tasks }, Cmd.none )
 
         LinkClicked urlRequest ->
             case urlRequest of
@@ -105,16 +146,10 @@ viewBoard model =
             ]
         , nav [ class "navbar--board-bar" ] []
         , div [ class "board--content" ]
-            [ displayList KandoroTask.Todo
-                [ newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
-                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
-                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
-                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
-                , newTask "Finish kandoro" "Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed." []
-                ]
-            , displayList KandoroTask.Doing []
-            , displayList KandoroTask.Done []
-            , displayList KandoroTask.Blocked []
+            [ displayList KandoroTask.Todo model.tasks
+            , displayList KandoroTask.Doing model.tasks
+            , displayList KandoroTask.Done model.tasks
+            , displayList KandoroTask.Blocked model.tasks
             ]
         ]
 
@@ -126,16 +161,20 @@ displayList state tasks =
             KandoroTask.stateToString state
     in
     div [ class <| "board--column board--column__" ++ String.toLower stateAsString ]
-        [ header []
-            [ text stateAsString ]
-        , displayTasksInList tasks
+        [ header [] [ text stateAsString ]
+        , displayTasksInList <| List.filter (\task -> state == getState task) tasks
         , footer [] [ text "Add a task" ]
         ]
 
 
 displayTasksInList : List KTask -> Html Msg
 displayTasksInList tasks =
-    ul [] (List.map displayTaskAsListItem tasks)
+    Keyed.ul [] (List.map displayKeyedTaskAsListItem tasks)
+
+
+displayKeyedTaskAsListItem : KTask -> ( String, Html Msg )
+displayKeyedTaskAsListItem task =
+    ( UUID.toString <| getId task, lazy displayTaskAsListItem task )
 
 
 displayTaskAsListItem : KTask -> Html Msg

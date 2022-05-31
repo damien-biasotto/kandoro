@@ -40,7 +40,7 @@ type Msg
     | Pause Timer
     | Restart Timer
     | End Timer
-    | TimestampTransition Timer Time.Posix
+    | TimestampTransition Time.Posix Timer
 
 
 newTimer : Duration -> Duration -> Duration -> Timer
@@ -156,7 +156,7 @@ update msg =
         End timer ->
             ( endTimer timer, Cmd.none )
 
-        TimestampTransition timer time ->
+        TimestampTransition time timer ->
             ( timeStampLatestTransition timer time, Cmd.none )
 
 

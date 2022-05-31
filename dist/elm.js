@@ -4999,6 +4999,184 @@ function _Time_getZoneName()
 		callback(_Scheduler_succeed(name));
 	});
 }
+
+
+// BYTES
+
+function _Bytes_width(bytes)
+{
+	return bytes.byteLength;
+}
+
+var _Bytes_getHostEndianness = F2(function(le, be)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
+	});
+});
+
+
+// ENCODERS
+
+function _Bytes_encode(encoder)
+{
+	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
+	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
+	return mutableBytes;
+}
+
+
+// SIGNED INTEGERS
+
+var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
+var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
+var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
+
+
+// UNSIGNED INTEGERS
+
+var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
+var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
+var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
+
+
+// FLOATS
+
+var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
+var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
+
+
+// BYTES
+
+var _Bytes_write_bytes = F3(function(mb, offset, bytes)
+{
+	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
+	{
+		mb.setUint32(offset + i, bytes.getUint32(i));
+	}
+	for (; i < len; i++)
+	{
+		mb.setUint8(offset + i, bytes.getUint8(i));
+	}
+	return offset + len;
+});
+
+
+// STRINGS
+
+function _Bytes_getStringWidth(string)
+{
+	for (var width = 0, i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		width +=
+			(code < 0x80) ? 1 :
+			(code < 0x800) ? 2 :
+			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
+	}
+	return width;
+}
+
+var _Bytes_write_string = F3(function(mb, offset, string)
+{
+	for (var i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		offset +=
+			(code < 0x80)
+				? (mb.setUint8(offset, code)
+				, 1
+				)
+				:
+			(code < 0x800)
+				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
+					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
+					| code & 0x3F /* 0b00111111 */)
+				, 2
+				)
+				:
+			(code < 0xD800 || 0xDBFF < code)
+				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
+					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
+					| code >>> 6 & 0x3F /* 0b00111111 */)
+				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
+					| code & 0x3F /* 0b00111111 */)
+				, 3
+				)
+				:
+			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
+			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
+				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
+				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
+				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
+				| code & 0x3F /* 0b00111111 */)
+			, 4
+			);
+	}
+	return offset;
+});
+
+
+// DECODER
+
+var _Bytes_decode = F2(function(decoder, bytes)
+{
+	try {
+		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
+	} catch(e) {
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
+var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
+var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
+var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
+var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
+var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
+var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
+var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
+
+var _Bytes_read_bytes = F3(function(len, bytes, offset)
+{
+	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
+});
+
+var _Bytes_read_string = F3(function(len, bytes, offset)
+{
+	var string = '';
+	var end = offset + len;
+	for (; offset < end;)
+	{
+		var byte = bytes.getUint8(offset++);
+		string +=
+			(byte < 128)
+				? String.fromCharCode(byte)
+				:
+			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
+				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
+				:
+			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
+				? String.fromCharCode(
+					(byte & 0xF /* 0b00001111 */) << 12
+					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+				)
+				:
+				(byte =
+					((byte & 0x7 /* 0b00000111 */) << 18
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+					) - 0x10000
+				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
+				);
+	}
+	return _Utils_Tuple2(offset, string);
+});
+
+var _Bytes_decodeFailure = F2(function() { throw 0; });
 var $author$project$Main$LinkClicked = function (a) {
 	return {$: 'LinkClicked', a: a};
 };
@@ -10609,9 +10787,6 @@ var $elm$browser$Browser$application = _Browser_application;
 var $author$project$Main$AdjustTimeZone = function (a) {
 	return {$: 'AdjustTimeZone', a: a};
 };
-var $author$project$Timer$Duration = function (a) {
-	return {$: 'Duration', a: a};
-};
 var $elm$time$Time$Name = function (a) {
 	return {$: 'Name', a: a};
 };
@@ -10624,6 +10799,901 @@ var $elm$time$Time$Zone = F2(
 	});
 var $elm$time$Time$customZone = $elm$time$Time$Zone;
 var $elm$time$Time$here = _Time_here(_Utils_Tuple0);
+var $author$project$Timer$Duration = function (a) {
+	return {$: 'Duration', a: a};
+};
+var $author$project$KandoroTask$Task = function (a) {
+	return {$: 'Task', a: a};
+};
+var $author$project$KandoroTask$Todo = {$: 'Todo'};
+var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
+	switch (builder.$) {
+		case 'I8':
+			return 1;
+		case 'I16':
+			return 2;
+		case 'I32':
+			return 4;
+		case 'U8':
+			return 1;
+		case 'U16':
+			return 2;
+		case 'U32':
+			return 4;
+		case 'F32':
+			return 4;
+		case 'F64':
+			return 8;
+		case 'Seq':
+			var w = builder.a;
+			return w;
+		case 'Utf8':
+			var w = builder.a;
+			return w;
+		default:
+			var bs = builder.a;
+			return _Bytes_width(bs);
+	}
+};
+var $elm$bytes$Bytes$LE = {$: 'LE'};
+var $elm$bytes$Bytes$Encode$write = F3(
+	function (builder, mb, offset) {
+		switch (builder.$) {
+			case 'I8':
+				var n = builder.a;
+				return A3(_Bytes_write_i8, mb, offset, n);
+			case 'I16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'I32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U8':
+				var n = builder.a;
+				return A3(_Bytes_write_u8, mb, offset, n);
+			case 'U16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F64':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f64,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'Seq':
+				var bs = builder.b;
+				return A3($elm$bytes$Bytes$Encode$writeSequence, bs, mb, offset);
+			case 'Utf8':
+				var s = builder.b;
+				return A3(_Bytes_write_string, mb, offset, s);
+			default:
+				var bs = builder.a;
+				return A3(_Bytes_write_bytes, mb, offset, bs);
+		}
+	});
+var $elm$bytes$Bytes$Encode$writeSequence = F3(
+	function (builders, mb, offset) {
+		writeSequence:
+		while (true) {
+			if (!builders.b) {
+				return offset;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$builders = bs,
+					$temp$mb = mb,
+					$temp$offset = A3($elm$bytes$Bytes$Encode$write, b, mb, offset);
+				builders = $temp$builders;
+				mb = $temp$mb;
+				offset = $temp$offset;
+				continue writeSequence;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Encode$encode = _Bytes_encode;
+var $TSFoster$elm_uuid$UUID$UUID = F4(
+	function (a, b, c, d) {
+		return {$: 'UUID', a: a, b: b, c: c, d: d};
+	});
+var $elm$bytes$Bytes$Encode$Bytes = function (a) {
+	return {$: 'Bytes', a: a};
+};
+var $elm$bytes$Bytes$Encode$bytes = $elm$bytes$Bytes$Encode$Bytes;
+var $elm$bytes$Bytes$BE = {$: 'BE'};
+var $elm$bytes$Bytes$Encode$Seq = F2(
+	function (a, b) {
+		return {$: 'Seq', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$getWidths = F2(
+	function (width, builders) {
+		getWidths:
+		while (true) {
+			if (!builders.b) {
+				return width;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$width = width + $elm$bytes$Bytes$Encode$getWidth(b),
+					$temp$builders = bs;
+				width = $temp$width;
+				builders = $temp$builders;
+				continue getWidths;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Encode$sequence = function (builders) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Seq,
+		A2($elm$bytes$Bytes$Encode$getWidths, 0, builders),
+		builders);
+};
+var $elm$bytes$Bytes$Encode$U32 = F2(
+	function (a, b) {
+		return {$: 'U32', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$unsignedInt32 = $elm$bytes$Bytes$Encode$U32;
+var $TSFoster$elm_uuid$UUID$encoder = function (_v0) {
+	var a = _v0.a;
+	var b = _v0.b;
+	var c = _v0.c;
+	var d = _v0.d;
+	return $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, a),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, b),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, c),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, d)
+			]));
+};
+var $elm$bytes$Bytes$Decode$decode = F2(
+	function (_v0, bs) {
+		var decoder = _v0.a;
+		return A2(_Bytes_decode, decoder, bs);
+	});
+var $elm$bytes$Bytes$Decode$Decoder = function (a) {
+	return {$: 'Decoder', a: a};
+};
+var $elm$bytes$Bytes$Decode$loopHelp = F4(
+	function (state, callback, bites, offset) {
+		loopHelp:
+		while (true) {
+			var _v0 = callback(state);
+			var decoder = _v0.a;
+			var _v1 = A2(decoder, bites, offset);
+			var newOffset = _v1.a;
+			var step = _v1.b;
+			if (step.$ === 'Loop') {
+				var newState = step.a;
+				var $temp$state = newState,
+					$temp$callback = callback,
+					$temp$bites = bites,
+					$temp$offset = newOffset;
+				state = $temp$state;
+				callback = $temp$callback;
+				bites = $temp$bites;
+				offset = $temp$offset;
+				continue loopHelp;
+			} else {
+				var result = step.a;
+				return _Utils_Tuple2(newOffset, result);
+			}
+		}
+	});
+var $elm$bytes$Bytes$Decode$loop = F2(
+	function (state, callback) {
+		return $elm$bytes$Bytes$Decode$Decoder(
+			A2($elm$bytes$Bytes$Decode$loopHelp, state, callback));
+	});
+var $elm$bytes$Bytes$Decode$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var $elm$bytes$Bytes$Decode$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var $elm$bytes$Bytes$Decode$map = F2(
+	function (func, _v0) {
+		var decodeA = _v0.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v1 = A2(decodeA, bites, offset);
+					var aOffset = _v1.a;
+					var a = _v1.b;
+					return _Utils_Tuple2(
+						aOffset,
+						func(a));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$succeed = function (a) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		F2(
+			function (_v0, offset) {
+				return _Utils_Tuple2(offset, a);
+			}));
+};
+var $TSFoster$elm_sha1$SHA1$loopHelp = F2(
+	function (step, _v0) {
+		var n = _v0.a;
+		var state = _v0.b;
+		return (n > 0) ? A2(
+			$elm$bytes$Bytes$Decode$map,
+			function (_new) {
+				return $elm$bytes$Bytes$Decode$Loop(
+					_Utils_Tuple2(n - 1, _new));
+			},
+			step(state)) : $elm$bytes$Bytes$Decode$succeed(
+			$elm$bytes$Bytes$Decode$Done(state));
+	});
+var $TSFoster$elm_sha1$SHA1$iterate = F3(
+	function (n, step, initial) {
+		return A2(
+			$elm$bytes$Bytes$Decode$loop,
+			_Utils_Tuple2(n, initial),
+			$TSFoster$elm_sha1$SHA1$loopHelp(step));
+	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $elm$bytes$Bytes$Encode$U8 = function (a) {
+	return {$: 'U8', a: a};
+};
+var $elm$bytes$Bytes$Encode$unsignedInt8 = $elm$bytes$Bytes$Encode$U8;
+var $elm$bytes$Bytes$width = _Bytes_width;
+var $TSFoster$elm_sha1$SHA1$padBuffer = function (bytes) {
+	var byteCount = $elm$bytes$Bytes$width(bytes);
+	var paddingSize = 4 + A2(
+		$elm$core$Basics$modBy,
+		64,
+		56 - A2($elm$core$Basics$modBy, 64, byteCount + 1));
+	var message = $elm$bytes$Bytes$Encode$encode(
+		$elm$bytes$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$elm$bytes$Bytes$Encode$bytes(bytes),
+					$elm$bytes$Bytes$Encode$unsignedInt8(128),
+					$elm$bytes$Bytes$Encode$sequence(
+					A2(
+						$elm$core$List$repeat,
+						paddingSize,
+						$elm$bytes$Bytes$Encode$unsignedInt8(0))),
+					A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, byteCount << 3)
+				])));
+	return message;
+};
+var $elm$bytes$Bytes$Decode$map4 = F5(
+	function (func, _v0, _v1, _v2, _v3) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v4 = A2(decodeA, bites, offset);
+					var aOffset = _v4.a;
+					var a = _v4.b;
+					var _v5 = A2(decodeB, bites, aOffset);
+					var bOffset = _v5.a;
+					var b = _v5.b;
+					var _v6 = A2(decodeC, bites, bOffset);
+					var cOffset = _v6.a;
+					var c = _v6.b;
+					var _v7 = A2(decodeD, bites, cOffset);
+					var dOffset = _v7.a;
+					var d = _v7.b;
+					return _Utils_Tuple2(
+						dOffset,
+						A4(func, a, b, c, d));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$map5 = F6(
+	function (func, _v0, _v1, _v2, _v3, _v4) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		var decodeE = _v4.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v5 = A2(decodeA, bites, offset);
+					var aOffset = _v5.a;
+					var a = _v5.b;
+					var _v6 = A2(decodeB, bites, aOffset);
+					var bOffset = _v6.a;
+					var b = _v6.b;
+					var _v7 = A2(decodeC, bites, bOffset);
+					var cOffset = _v7.a;
+					var c = _v7.b;
+					var _v8 = A2(decodeD, bites, cOffset);
+					var dOffset = _v8.a;
+					var d = _v8.b;
+					var _v9 = A2(decodeE, bites, dOffset);
+					var eOffset = _v9.a;
+					var e = _v9.b;
+					return _Utils_Tuple2(
+						eOffset,
+						A5(func, a, b, c, d, e));
+				}));
+	});
+var $TSFoster$elm_sha1$SHA1$map16 = function (f) {
+	return function (b1) {
+		return function (b2) {
+			return function (b3) {
+				return function (b4) {
+					return function (b5) {
+						return function (b6) {
+							return function (b7) {
+								return function (b8) {
+									return function (b9) {
+										return function (b10) {
+											return function (b11) {
+												return function (b12) {
+													return function (b13) {
+														return function (b14) {
+															return function (b15) {
+																return function (b16) {
+																	var d1 = A5(
+																		$elm$bytes$Bytes$Decode$map4,
+																		F4(
+																			function (a, b, c, d) {
+																				return A4(f, a, b, c, d);
+																			}),
+																		b1,
+																		b2,
+																		b3,
+																		b4);
+																	var d2 = A6(
+																		$elm$bytes$Bytes$Decode$map5,
+																		F5(
+																			function (h, a, b, c, d) {
+																				return A4(h, a, b, c, d);
+																			}),
+																		d1,
+																		b5,
+																		b6,
+																		b7,
+																		b8);
+																	var d3 = A6(
+																		$elm$bytes$Bytes$Decode$map5,
+																		F5(
+																			function (h, a, b, c, d) {
+																				return A4(h, a, b, c, d);
+																			}),
+																		d2,
+																		b9,
+																		b10,
+																		b11,
+																		b12);
+																	var d4 = A6(
+																		$elm$bytes$Bytes$Decode$map5,
+																		F5(
+																			function (h, a, b, c, d) {
+																				return A4(h, a, b, c, d);
+																			}),
+																		d3,
+																		b13,
+																		b14,
+																		b15,
+																		b16);
+																	return d4;
+																};
+															};
+														};
+													};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $TSFoster$elm_sha1$SHA1$DeltaState = function (a) {
+	return {$: 'DeltaState', a: a};
+};
+var $TSFoster$elm_sha1$SHA1$State = function (a) {
+	return {$: 'State', a: a};
+};
+var $elm$core$Bitwise$complement = _Bitwise_complement;
+var $elm$core$Bitwise$or = _Bitwise_or;
+var $TSFoster$elm_sha1$SHA1$rotateLeftBy = F2(
+	function (amount, i) {
+		return ((i >>> (32 - amount)) | (i << amount)) >>> 0;
+	});
+var $elm$core$Bitwise$xor = _Bitwise_xor;
+var $TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk = F3(
+	function (index, _int, _v0) {
+		var a = _v0.a.a;
+		var b = _v0.a.b;
+		var c = _v0.a.c;
+		var d = _v0.a.d;
+		var e = _v0.a.e;
+		var shiftedA = (a >>> (32 - 5)) | (a << 5);
+		var f = function () {
+			var _v1 = (index / 20) | 0;
+			switch (_v1) {
+				case 0:
+					return ((b & c) | ((~b) & d)) + 1518500249;
+				case 1:
+					return (b ^ (c ^ d)) + 1859775393;
+				case 2:
+					return ((b & (c | d)) | (c & d)) + 2400959708;
+				default:
+					return (b ^ (c ^ d)) + 3395469782;
+			}
+		}();
+		var newA = (((shiftedA + f) + e) + _int) >>> 0;
+		return $TSFoster$elm_sha1$SHA1$DeltaState(
+			{
+				a: newA,
+				b: a,
+				c: A2($TSFoster$elm_sha1$SHA1$rotateLeftBy, 30, b),
+				d: c,
+				e: d
+			});
+	});
+var $TSFoster$elm_sha1$SHA1$calculateDigestDeltas = function (remaining) {
+	return function (index) {
+		return function (a) {
+			return function (b) {
+				return function (c) {
+					return function (d) {
+						return function (e) {
+							return function (v1) {
+								return function (v2) {
+									return function (v3) {
+										return function (v4) {
+											return function (v5) {
+												return function (v6) {
+													return function (v7) {
+														return function (v8) {
+															calculateDigestDeltas:
+															while (true) {
+																if (!remaining) {
+																	return $TSFoster$elm_sha1$SHA1$DeltaState(
+																		{a: a, b: b, c: c, d: d, e: e});
+																} else {
+																	var shiftedA = (a >>> (32 - 5)) | (a << 5);
+																	var _int = v1;
+																	var f = function () {
+																		var _v0 = (index / 20) | 0;
+																		switch (_v0) {
+																			case 0:
+																				return ((b & c) | ((~b) & d)) + 1518500249;
+																			case 1:
+																				return (b ^ (c ^ d)) + 1859775393;
+																			case 2:
+																				return ((b & (c | d)) | (c & d)) + 2400959708;
+																			default:
+																				return (b ^ (c ^ d)) + 3395469782;
+																		}
+																	}();
+																	var newA = (((shiftedA + f) + e) + _int) >>> 0;
+																	var $temp$remaining = remaining - 1,
+																		$temp$index = index + 1,
+																		$temp$a = newA,
+																		$temp$b = a,
+																		$temp$c = A2($TSFoster$elm_sha1$SHA1$rotateLeftBy, 30, b),
+																		$temp$d = c,
+																		$temp$e = d,
+																		$temp$v1 = v2,
+																		$temp$v2 = v3,
+																		$temp$v3 = v4,
+																		$temp$v4 = v5,
+																		$temp$v5 = v6,
+																		$temp$v6 = v7,
+																		$temp$v7 = v8,
+																		$temp$v8 = 0;
+																	remaining = $temp$remaining;
+																	index = $temp$index;
+																	a = $temp$a;
+																	b = $temp$b;
+																	c = $temp$c;
+																	d = $temp$d;
+																	e = $temp$e;
+																	v1 = $temp$v1;
+																	v2 = $temp$v2;
+																	v3 = $temp$v3;
+																	v4 = $temp$v4;
+																	v5 = $temp$v5;
+																	v6 = $temp$v6;
+																	v7 = $temp$v7;
+																	v8 = $temp$v8;
+																	continue calculateDigestDeltas;
+																}
+															}
+														};
+													};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $TSFoster$elm_sha1$SHA1$rotateLeftBy1 = function (i) {
+	return (i >>> 31) | (i << 1);
+};
+var $TSFoster$elm_sha1$SHA1$reduceWords = function (i) {
+	return function (deltaState) {
+		return function (b16) {
+			return function (b15) {
+				return function (b14) {
+					return function (b13) {
+						return function (b12) {
+							return function (b11) {
+								return function (b10) {
+									return function (b9) {
+										return function (b8) {
+											return function (b7) {
+												return function (b6) {
+													return function (b5) {
+														return function (b4) {
+															return function (b3) {
+																return function (b2) {
+																	return function (b1) {
+																		reduceWords:
+																		while (true) {
+																			var a = deltaState.a.a;
+																			var b = deltaState.a.b;
+																			var c = deltaState.a.c;
+																			var d = deltaState.a.d;
+																			var e = deltaState.a.e;
+																			if (i !== 64) {
+																				var value3 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b14 ^ (b12 ^ (b6 ^ b1)));
+																				var value6 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b11 ^ (b9 ^ (b3 ^ value3)));
+																				var value2 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b15 ^ (b13 ^ (b7 ^ b2)));
+																				var value5 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b12 ^ (b10 ^ (b4 ^ value2)));
+																				var value8 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b9 ^ (b7 ^ (b1 ^ value5)));
+																				var value1 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b16 ^ (b14 ^ (b8 ^ b3)));
+																				var value4 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b13 ^ (b11 ^ (b5 ^ value1)));
+																				var value7 = $TSFoster$elm_sha1$SHA1$rotateLeftBy1(b10 ^ (b8 ^ (b2 ^ value4)));
+																				var newState = $TSFoster$elm_sha1$SHA1$calculateDigestDeltas(8)(i + 16)(a)(b)(c)(d)(e)(value1)(value2)(value3)(value4)(value5)(value6)(value7)(value8);
+																				var $temp$i = i + 8,
+																					$temp$deltaState = newState,
+																					$temp$b16 = b8,
+																					$temp$b15 = b7,
+																					$temp$b14 = b6,
+																					$temp$b13 = b5,
+																					$temp$b12 = b4,
+																					$temp$b11 = b3,
+																					$temp$b10 = b2,
+																					$temp$b9 = b1,
+																					$temp$b8 = value1,
+																					$temp$b7 = value2,
+																					$temp$b6 = value3,
+																					$temp$b5 = value4,
+																					$temp$b4 = value5,
+																					$temp$b3 = value6,
+																					$temp$b2 = value7,
+																					$temp$b1 = value8;
+																				i = $temp$i;
+																				deltaState = $temp$deltaState;
+																				b16 = $temp$b16;
+																				b15 = $temp$b15;
+																				b14 = $temp$b14;
+																				b13 = $temp$b13;
+																				b12 = $temp$b12;
+																				b11 = $temp$b11;
+																				b10 = $temp$b10;
+																				b9 = $temp$b9;
+																				b8 = $temp$b8;
+																				b7 = $temp$b7;
+																				b6 = $temp$b6;
+																				b5 = $temp$b5;
+																				b4 = $temp$b4;
+																				b3 = $temp$b3;
+																				b2 = $temp$b2;
+																				b1 = $temp$b1;
+																				continue reduceWords;
+																			} else {
+																				return deltaState;
+																			}
+																		}
+																	};
+																};
+															};
+														};
+													};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $TSFoster$elm_sha1$SHA1$reduceChunkHelp = function (_v0) {
+	return function (b1) {
+		return function (b2) {
+			return function (b3) {
+				return function (b4) {
+					return function (b5) {
+						return function (b6) {
+							return function (b7) {
+								return function (b8) {
+									return function (b9) {
+										return function (b10) {
+											return function (b11) {
+												return function (b12) {
+													return function (b13) {
+														return function (b14) {
+															return function (b15) {
+																return function (b16) {
+																	var initial = _v0.a;
+																	var initialDeltaState = A3(
+																		$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																		15,
+																		b16,
+																		A3(
+																			$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																			14,
+																			b15,
+																			A3(
+																				$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																				13,
+																				b14,
+																				A3(
+																					$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																					12,
+																					b13,
+																					A3(
+																						$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																						11,
+																						b12,
+																						A3(
+																							$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																							10,
+																							b11,
+																							A3(
+																								$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																								9,
+																								b10,
+																								A3(
+																									$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																									8,
+																									b9,
+																									A3(
+																										$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																										7,
+																										b8,
+																										A3(
+																											$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																											6,
+																											b7,
+																											A3(
+																												$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																												5,
+																												b6,
+																												A3(
+																													$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																													4,
+																													b5,
+																													A3(
+																														$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																														3,
+																														b4,
+																														A3(
+																															$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																															2,
+																															b3,
+																															A3(
+																																$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																																1,
+																																b2,
+																																A3(
+																																	$TSFoster$elm_sha1$SHA1$calculateDigestDeltasChunk,
+																																	0,
+																																	b1,
+																																	$TSFoster$elm_sha1$SHA1$DeltaState(initial)))))))))))))))));
+																	var _v1 = $TSFoster$elm_sha1$SHA1$reduceWords(0)(initialDeltaState)(b1)(b2)(b3)(b4)(b5)(b6)(b7)(b8)(b9)(b10)(b11)(b12)(b13)(b14)(b15)(b16);
+																	var a = _v1.a.a;
+																	var b = _v1.a.b;
+																	var c = _v1.a.c;
+																	var d = _v1.a.d;
+																	var e = _v1.a.e;
+																	return $TSFoster$elm_sha1$SHA1$State(
+																		{a: initial.a + a, b: initial.b + b, c: initial.c + c, d: initial.d + d, e: initial.e + e});
+																};
+															};
+														};
+													};
+												};
+											};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var $elm$bytes$Bytes$Decode$unsignedInt32 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_u32(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $TSFoster$elm_sha1$SHA1$u32 = $elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE);
+var $TSFoster$elm_sha1$SHA1$reduceChunk = function (state) {
+	return $TSFoster$elm_sha1$SHA1$map16(
+		$TSFoster$elm_sha1$SHA1$reduceChunkHelp(state))($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32)($TSFoster$elm_sha1$SHA1$u32);
+};
+var $TSFoster$elm_sha1$SHA1$Digest = function (a) {
+	return {$: 'Digest', a: a};
+};
+var $TSFoster$elm_sha1$SHA1$stateToDigest = function (_v0) {
+	var a = _v0.a.a;
+	var b = _v0.a.b;
+	var c = _v0.a.c;
+	var d = _v0.a.d;
+	var e = _v0.a.e;
+	return $TSFoster$elm_sha1$SHA1$Digest(
+		{a: a >>> 0, b: b >>> 0, c: c >>> 0, d: d >>> 0, e: e >>> 0});
+};
+var $TSFoster$elm_sha1$SHA1$hashBytes = F2(
+	function (state, bytes) {
+		var message = $TSFoster$elm_sha1$SHA1$padBuffer(bytes);
+		var numberOfChunks = ($elm$bytes$Bytes$width(message) / 64) | 0;
+		var hashState = A3($TSFoster$elm_sha1$SHA1$iterate, numberOfChunks, $TSFoster$elm_sha1$SHA1$reduceChunk, state);
+		return $TSFoster$elm_sha1$SHA1$stateToDigest(
+			A2(
+				$elm$core$Maybe$withDefault,
+				state,
+				A2($elm$bytes$Bytes$Decode$decode, hashState, message)));
+	});
+var $TSFoster$elm_sha1$SHA1$Tuple5 = F5(
+	function (a, b, c, d, e) {
+		return {a: a, b: b, c: c, d: d, e: e};
+	});
+var $TSFoster$elm_sha1$SHA1$initialState = $TSFoster$elm_sha1$SHA1$State(
+	A5($TSFoster$elm_sha1$SHA1$Tuple5, 1732584193, 4023233417, 2562383102, 271733878, 3285377520));
+var $TSFoster$elm_sha1$SHA1$fromBytes = $TSFoster$elm_sha1$SHA1$hashBytes($TSFoster$elm_sha1$SHA1$initialState);
+var $TSFoster$elm_sha1$SHA1$toInt32s = function (_v0) {
+	var digest = _v0.a;
+	return digest;
+};
+var $TSFoster$elm_uuid$UUID$forceUnsigned = $elm$core$Bitwise$shiftRightZfBy(0);
+var $TSFoster$elm_uuid$UUID$toVariant1 = function (_v0) {
+	var a = _v0.a;
+	var b = _v0.b;
+	var c = _v0.c;
+	var d = _v0.d;
+	return A4(
+		$TSFoster$elm_uuid$UUID$UUID,
+		a,
+		b,
+		$TSFoster$elm_uuid$UUID$forceUnsigned(2147483648 | (1073741823 & c)),
+		d);
+};
+var $TSFoster$elm_uuid$UUID$toVersion = F2(
+	function (v, _v0) {
+		var a = _v0.a;
+		var b = _v0.b;
+		var c = _v0.c;
+		var d = _v0.d;
+		return A4(
+			$TSFoster$elm_uuid$UUID$UUID,
+			a,
+			$TSFoster$elm_uuid$UUID$forceUnsigned((v << 12) | (4294905855 & b)),
+			c,
+			d);
+	});
+var $TSFoster$elm_uuid$UUID$forBytes = F2(
+	function (bytes, namespace) {
+		return $TSFoster$elm_uuid$UUID$toVariant1(
+			A2(
+				$TSFoster$elm_uuid$UUID$toVersion,
+				5,
+				function (_v0) {
+					var a = _v0.a;
+					var b = _v0.b;
+					var c = _v0.c;
+					var d = _v0.d;
+					return A4($TSFoster$elm_uuid$UUID$UUID, a, b, c, d);
+				}(
+					$TSFoster$elm_sha1$SHA1$toInt32s(
+						$TSFoster$elm_sha1$SHA1$fromBytes(
+							$elm$bytes$Bytes$Encode$encode(
+								$elm$bytes$Bytes$Encode$sequence(
+									_List_fromArray(
+										[
+											$TSFoster$elm_uuid$UUID$encoder(namespace),
+											$elm$bytes$Bytes$Encode$bytes(bytes)
+										]))))))));
+	});
+var $elm$bytes$Bytes$Encode$Utf8 = F2(
+	function (a, b) {
+		return {$: 'Utf8', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$string = function (str) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Utf8,
+		_Bytes_getStringWidth(str),
+		str);
+};
+var $TSFoster$elm_uuid$UUID$forName = A2(
+	$elm$core$Basics$composeL,
+	A2($elm$core$Basics$composeL, $TSFoster$elm_uuid$UUID$forBytes, $elm$bytes$Bytes$Encode$encode),
+	$elm$bytes$Bytes$Encode$string);
 var $author$project$Timer$NotStarted = {$: 'NotStarted'};
 var $author$project$Timer$Timer = function (a) {
 	return {$: 'Timer', a: a};
@@ -10633,17 +11703,42 @@ var $author$project$Timer$newTimer = F3(
 		return $author$project$Timer$Timer(
 			{currentValue: 0, longBreakDuration: _long, maximumDuration: duration, shortBreakDuration: small, state: $author$project$Timer$NotStarted, transitions: _List_Nil});
 	});
+var $TSFoster$elm_uuid$UUID$dnsNamespace = A4($TSFoster$elm_uuid$UUID$UUID, 1806153744, 2645365201, 2159280320, 1339306184);
+var $author$project$KandoroTask$appNamespace = A2($TSFoster$elm_uuid$UUID$forName, 'https://kandoro.github.io', $TSFoster$elm_uuid$UUID$dnsNamespace);
+var $author$project$KandoroTask$widgetNamespace = A2($TSFoster$elm_uuid$UUID$forName, 'Kandoro', $author$project$KandoroTask$appNamespace);
+var $author$project$KandoroTask$newTask = F3(
+	function (title, content, tags) {
+		return $author$project$KandoroTask$Task(
+			{
+				comments: _List_Nil,
+				description: content,
+				id: A2($TSFoster$elm_uuid$UUID$forName, title, $author$project$KandoroTask$widgetNamespace),
+				order: 0,
+				state: $author$project$KandoroTask$Todo,
+				tags: tags,
+				timer: A3(
+					$author$project$Timer$newTimer,
+					$author$project$Timer$Duration(25),
+					$author$project$Timer$Duration(15),
+					$author$project$Timer$Duration(5)),
+				title: title,
+				transitions: _List_Nil
+			});
+	});
 var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
 var $author$project$Main$init = F3(
 	function (_v0, url, key) {
 		return _Utils_Tuple2(
 			{
 				key: key,
-				timer: A3(
-					$author$project$Timer$newTimer,
-					$author$project$Timer$Duration(2),
-					$author$project$Timer$Duration(2),
-					$author$project$Timer$Duration(1)),
+				tasks: _List_fromArray(
+					[
+						A3($author$project$KandoroTask$newTask, 'Implement Drag and Drop', 'To allow a task to change its state and update timer', _List_Nil),
+						A3($author$project$KandoroTask$newTask, 'Allow a task to change its state', 'Any state can be set on a task.', _List_Nil),
+						A3($author$project$KandoroTask$newTask, 'Add persistence', 'Leverage local storage as config and data storage..', _List_Nil),
+						A3($author$project$KandoroTask$newTask, 'Persistence part 2', 'Use a backend to store stuff in database Keep the frontend storage for initial rendering?.', _List_Nil),
+						A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Use it.', _List_Nil)
+					]),
 				timezone: $elm$time$Time$utc,
 				url: url
 			},
@@ -10894,6 +11989,18 @@ var $elm$url$Url$toString = function (url) {
 					_Utils_ap(http, url.host)),
 				url.path)));
 };
+var $author$project$KandoroTask$getTimer = function (_v0) {
+	var task = _v0.a;
+	return task.timer;
+};
+var $author$project$KandoroTask$setTimer = F2(
+	function (_v0, timer) {
+		var task = _v0.a;
+		return $author$project$KandoroTask$Task(
+			_Utils_update(
+				task,
+				{timer: timer}));
+	});
 var $author$project$Timer$Ended = {$: 'Ended'};
 var $author$project$Timer$TransitionWithoutTime = function (a) {
 	return {$: 'TransitionWithoutTime', a: a};
@@ -11041,7 +12148,6 @@ var $author$project$Timer$filterTransitionByState = F2(
 			return _Utils_eq(from, state);
 		}
 	});
-var $elm$core$Basics$modBy = _Basics_modBy;
 var $author$project$Timer$getNextTypeOfBreak = function (transitions) {
 	if (!transitions.b) {
 		return $author$project$Timer$ShortBreak;
@@ -11146,13 +12252,43 @@ var $author$project$Timer$update = function (msg) {
 				$author$project$Timer$endTimer(timer),
 				$elm$core$Platform$Cmd$none);
 		default:
-			var timer = msg.a;
-			var time = msg.b;
+			var time = msg.a;
+			var timer = msg.b;
 			return _Utils_Tuple2(
 				A2($author$project$Timer$timeStampLatestTransition, timer, time),
 				$elm$core$Platform$Cmd$none);
 	}
 };
+var $author$project$Main$updateTimer = F3(
+	function (msg, timer, tasks) {
+		return A2(
+			$elm$core$List$map,
+			function (task) {
+				return _Utils_eq(
+					timer,
+					$author$project$KandoroTask$getTimer(task)) ? A2(
+					$author$project$KandoroTask$setTimer,
+					task,
+					$author$project$Timer$update(
+						msg(
+							$author$project$KandoroTask$getTimer(task))).a) : task;
+			},
+			tasks);
+	});
+var $author$project$Main$updateTimers = F2(
+	function (msg, tasks) {
+		return A2(
+			$elm$core$List$map,
+			function (task) {
+				return A2(
+					$author$project$KandoroTask$setTimer,
+					task,
+					$author$project$Timer$update(
+						msg(
+							$author$project$KandoroTask$getTimer(task))).a);
+			},
+			tasks);
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -11168,8 +12304,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								$author$project$Timer$Update(model.timer)).a
+							tasks: A2($author$project$Main$updateTimers, $author$project$Timer$Update, model.tasks)
 						}),
 					A2($elm$core$Task$perform, $author$project$Main$AddTimestamp, $elm$time$Time$now));
 			case 'StartTimer':
@@ -11178,8 +12313,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								$author$project$Timer$Start(timer)).a
+							tasks: A3($author$project$Main$updateTimer, $author$project$Timer$Start, timer, model.tasks)
 						}),
 					A2($elm$core$Task$perform, $author$project$Main$AddTimestamp, $elm$time$Time$now));
 			case 'PauseTimer':
@@ -11188,8 +12322,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								$author$project$Timer$Pause(timer)).a
+							tasks: A3($author$project$Main$updateTimer, $author$project$Timer$Pause, timer, model.tasks)
 						}),
 					A2($elm$core$Task$perform, $author$project$Main$AddTimestamp, $elm$time$Time$now));
 			case 'RestartTimer':
@@ -11198,8 +12331,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								$author$project$Timer$Restart(timer)).a
+							tasks: A3($author$project$Main$updateTimer, $author$project$Timer$Restart, timer, model.tasks)
 						}),
 					A2($elm$core$Task$perform, $author$project$Main$AddTimestamp, $elm$time$Time$now));
 			case 'EndTimer':
@@ -11208,8 +12340,7 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								$author$project$Timer$End(timer)).a
+							tasks: A3($author$project$Main$updateTimer, $author$project$Timer$End, timer, model.tasks)
 						}),
 					A2($elm$core$Task$perform, $author$project$Main$AddTimestamp, $elm$time$Time$now));
 			case 'AddTimestamp':
@@ -11218,8 +12349,10 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							timer: $author$project$Timer$update(
-								A2($author$project$Timer$TimestampTransition, model.timer, time)).a
+							tasks: A2(
+								$author$project$Main$updateTimers,
+								$author$project$Timer$TimestampTransition(time),
+								model.tasks)
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'LinkClicked':
@@ -12667,12 +13800,10 @@ var $robinheghan$murmur3$Murmur3$multiplyBy = F2(
 	function (b, a) {
 		return ((a & 65535) * b) + ((((a >>> 16) * b) & 65535) << 16);
 	});
-var $elm$core$Bitwise$or = _Bitwise_or;
 var $robinheghan$murmur3$Murmur3$rotlBy = F2(
 	function (b, a) {
 		return (a << b) | (a >>> (32 - b));
 	});
-var $elm$core$Bitwise$xor = _Bitwise_xor;
 var $robinheghan$murmur3$Murmur3$finalize = function (data) {
 	var acc = (!(!data.hash)) ? (data.seed ^ A2(
 		$robinheghan$murmur3$Murmur3$multiplyBy,
@@ -14341,7 +15472,6 @@ var $rtfeldman$elm_css$Html$Styled$toUnstyled = $rtfeldman$elm_css$VirtualDom$St
 var $author$project$KandoroTask$Blocked = {$: 'Blocked'};
 var $author$project$KandoroTask$Doing = {$: 'Doing'};
 var $author$project$KandoroTask$Done = {$: 'Done'};
-var $author$project$KandoroTask$Todo = {$: 'Todo'};
 var $author$project$Main$PauseTimer = function (a) {
 	return {$: 'PauseTimer', a: a};
 };
@@ -14355,10 +15485,6 @@ var $elm$html$Html$footer = _VirtualDom_node('footer');
 var $author$project$KandoroTask$getDescription = function (_v0) {
 	var task = _v0.a;
 	return task.description;
-};
-var $author$project$KandoroTask$getTimer = function (_v0) {
-	var task = _v0.a;
-	return task.timer;
 };
 var $author$project$KandoroTask$getTitle = function (_v0) {
 	var task = _v0.a;
@@ -14431,11 +15557,151 @@ var $author$project$Main$displayTaskAsListItem = function (task) {
 					]))
 			]));
 };
+var $author$project$KandoroTask$getId = function (_v0) {
+	var task = _v0.a;
+	return task.id;
+};
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $TSFoster$elm_uuid$UUID$toHex = F2(
+	function (acc, _int) {
+		toHex:
+		while (true) {
+			if (!_int) {
+				return $elm$core$String$fromList(acc);
+			} else {
+				var _char = function () {
+					var _v0 = 15 & _int;
+					switch (_v0) {
+						case 0:
+							return _Utils_chr('0');
+						case 1:
+							return _Utils_chr('1');
+						case 2:
+							return _Utils_chr('2');
+						case 3:
+							return _Utils_chr('3');
+						case 4:
+							return _Utils_chr('4');
+						case 5:
+							return _Utils_chr('5');
+						case 6:
+							return _Utils_chr('6');
+						case 7:
+							return _Utils_chr('7');
+						case 8:
+							return _Utils_chr('8');
+						case 9:
+							return _Utils_chr('9');
+						case 10:
+							return _Utils_chr('a');
+						case 11:
+							return _Utils_chr('b');
+						case 12:
+							return _Utils_chr('c');
+						case 13:
+							return _Utils_chr('d');
+						case 14:
+							return _Utils_chr('e');
+						default:
+							return _Utils_chr('f');
+					}
+				}();
+				var $temp$acc = A2($elm$core$List$cons, _char, acc),
+					$temp$int = _int >>> 4;
+				acc = $temp$acc;
+				_int = $temp$int;
+				continue toHex;
+			}
+		}
+	});
+var $TSFoster$elm_uuid$UUID$toStringWith = F2(
+	function (sep, _v0) {
+		var a = _v0.a;
+		var b = _v0.b;
+		var c = _v0.c;
+		var d = _v0.d;
+		return _Utils_ap(
+			A3(
+				$elm$core$String$padLeft,
+				8,
+				_Utils_chr('0'),
+				A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, a)),
+			_Utils_ap(
+				sep,
+				_Utils_ap(
+					A3(
+						$elm$core$String$padLeft,
+						4,
+						_Utils_chr('0'),
+						A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, b >>> 16)),
+					_Utils_ap(
+						sep,
+						_Utils_ap(
+							A3(
+								$elm$core$String$padLeft,
+								4,
+								_Utils_chr('0'),
+								A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, 65535 & b)),
+							_Utils_ap(
+								sep,
+								_Utils_ap(
+									A3(
+										$elm$core$String$padLeft,
+										4,
+										_Utils_chr('0'),
+										A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, c >>> 16)),
+									_Utils_ap(
+										sep,
+										_Utils_ap(
+											A3(
+												$elm$core$String$padLeft,
+												4,
+												_Utils_chr('0'),
+												A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, 65535 & c)),
+											A3(
+												$elm$core$String$padLeft,
+												8,
+												_Utils_chr('0'),
+												A2($TSFoster$elm_uuid$UUID$toHex, _List_Nil, d)))))))))));
+	});
+var $TSFoster$elm_uuid$UUID$toString = $TSFoster$elm_uuid$UUID$toStringWith('-');
+var $author$project$Main$displayKeyedTaskAsListItem = function (task) {
+	return _Utils_Tuple2(
+		$TSFoster$elm_uuid$UUID$toString(
+			$author$project$KandoroTask$getId(task)),
+		A2($elm$html$Html$Lazy$lazy, $author$project$Main$displayTaskAsListItem, task));
+};
+var $elm$html$Html$Keyed$ul = $elm$html$Html$Keyed$node('ul');
 var $author$project$Main$displayTasksInList = function (tasks) {
 	return A2(
-		$elm$html$Html$ul,
+		$elm$html$Html$Keyed$ul,
 		_List_Nil,
-		A2($elm$core$List$map, $author$project$Main$displayTaskAsListItem, tasks));
+		A2($elm$core$List$map, $author$project$Main$displayKeyedTaskAsListItem, tasks));
+};
+var $author$project$KandoroTask$getState = function (_v0) {
+	var task = _v0.a;
+	return task.state;
 };
 var $elm$html$Html$header = _VirtualDom_node('header');
 var $author$project$KandoroTask$stateToString = function (state) {
@@ -14469,7 +15735,15 @@ var $author$project$Main$displayList = F2(
 						[
 							$elm$html$Html$text(stateAsString)
 						])),
-					$author$project$Main$displayTasksInList(tasks),
+					$author$project$Main$displayTasksInList(
+					A2(
+						$elm$core$List$filter,
+						function (task) {
+							return _Utils_eq(
+								state,
+								$author$project$KandoroTask$getState(task));
+						},
+						tasks)),
 					A2(
 					$elm$html$Html$footer,
 					_List_Nil,
@@ -14481,26 +15755,6 @@ var $author$project$Main$displayList = F2(
 	});
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$html$Html$nav = _VirtualDom_node('nav');
-var $author$project$KandoroTask$Task = function (a) {
-	return {$: 'Task', a: a};
-};
-var $author$project$KandoroTask$newTask = F3(
-	function (title, content, tags) {
-		return $author$project$KandoroTask$Task(
-			{
-				comments: _List_Nil,
-				description: content,
-				order: 0,
-				tags: tags,
-				timer: A3(
-					$author$project$Timer$newTimer,
-					$author$project$Timer$Duration(25),
-					$author$project$Timer$Duration(15),
-					$author$project$Timer$Duration(5)),
-				title: title,
-				transitions: _List_Nil
-			});
-	});
 var $author$project$Main$viewBoard = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -14541,20 +15795,10 @@ var $author$project$Main$viewBoard = function (model) {
 					]),
 				_List_fromArray(
 					[
-						A2(
-						$author$project$Main$displayList,
-						$author$project$KandoroTask$Todo,
-						_List_fromArray(
-							[
-								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
-								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
-								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
-								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
-								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil)
-							])),
-						A2($author$project$Main$displayList, $author$project$KandoroTask$Doing, _List_Nil),
-						A2($author$project$Main$displayList, $author$project$KandoroTask$Done, _List_Nil),
-						A2($author$project$Main$displayList, $author$project$KandoroTask$Blocked, _List_Nil)
+						A2($author$project$Main$displayList, $author$project$KandoroTask$Todo, model.tasks),
+						A2($author$project$Main$displayList, $author$project$KandoroTask$Doing, model.tasks),
+						A2($author$project$Main$displayList, $author$project$KandoroTask$Done, model.tasks),
+						A2($author$project$Main$displayList, $author$project$KandoroTask$Blocked, model.tasks)
 					]))
 			]));
 };
