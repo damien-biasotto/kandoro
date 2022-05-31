@@ -1,7 +1,8 @@
-module KandoroTask exposing (KTask, State(..), Transition, Tag, Comment, newTask, getTitle, getDescription, getTimer, stateToString)
+module KandoroTask exposing (Comment, KTask, State(..), Tag, Transition, getDescription, getTimer, getTitle, newTask, stateToString)
 
-import Timer exposing (Timer, newTimer)
 import Time exposing (Posix)
+import Timer exposing (Timer, newTimer)
+
 
 type State
     = Todo
@@ -9,14 +10,17 @@ type State
     | Done
     | Blocked
 
+
 type Transition
     = StateWithoutTime ( State, State )
     | StateWithTime ( State, State, Posix )
-    | OrderWithoutTime (Order, Order)
-    | OrderWithTime (Order, Order, Posix)
+    | OrderWithoutTime ( Order, Order )
+    | OrderWithTime ( Order, Order, Posix )
+
 
 type Tag
     = Tag String
+
 
 type Comment
     = CommentWithoutDate
@@ -29,26 +33,30 @@ type Comment
         , createdAt : Posix
         }
 
+
 type Order
     = Order State Int
+
 
 type User
     = User String
 
+
 type KTask
     = Task
-    { title : String
-    , description : String
-    , tags : List Tag
-    , timer : Timer
-    , transitions : List Transition
-    , comments : List Comment
-    , order : Int
-    }
+        { title : String
+        , description : String
+        , tags : List Tag
+        , timer : Timer
+        , transitions : List Transition
+        , comments : List Comment
+        , order : Int
+        }
+
 
 newTask : String -> String -> List Tag -> KTask
-newTask title content tags
-    = Task
+newTask title content tags =
+    Task
         { title = title
         , description = content
         , tags = tags
@@ -58,22 +66,33 @@ newTask title content tags
         , order = 0
         }
 
+
 getTitle : KTask -> String
-getTitle (Task task)
-    = task.title
+getTitle (Task task) =
+    task.title
+
 
 getDescription : KTask -> String
-getDescription (Task task)
-    = task.description
+getDescription (Task task) =
+    task.description
+
 
 getTimer : KTask -> Timer
-getTimer (Task task)
-    = task.timer
+getTimer (Task task) =
+    task.timer
+
 
 stateToString : State -> String
-stateToString state
-    = case state of
-        Todo -> "Todo"
-        Doing -> "Doing"
-        Done -> "Done"
-        Blocked -> "Blocked"
+stateToString state =
+    case state of
+        Todo ->
+            "Todo"
+
+        Doing ->
+            "Doing"
+
+        Done ->
+            "Done"
+
+        Blocked ->
+            "Blocked"

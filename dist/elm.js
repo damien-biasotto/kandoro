@@ -13669,7 +13669,7 @@ var $author$project$Styles$style = function (_v0) {
 						$rtfeldman$elm_css$Css$after(
 						_List_fromArray(
 							[
-								A2($rtfeldman$elm_css$Css$property, 'content', ''),
+								A2($rtfeldman$elm_css$Css$property, 'content', '\"\"'),
 								$rtfeldman$elm_css$Css$flexGrow($rtfeldman$elm_css$Css$zero),
 								$rtfeldman$elm_css$Css$flexShrink($rtfeldman$elm_css$Css$zero),
 								$rtfeldman$elm_css$Css$flexBasis(
@@ -13677,86 +13677,72 @@ var $author$project$Styles$style = function (_v0) {
 							]))
 					])),
 				A2(
-				$rtfeldman$elm_css$Css$Global$class,
-				'board--column--content',
+				$rtfeldman$elm_css$Css$Global$typeSelector,
+				'ul',
 				_List_fromArray(
 					[
+						$rtfeldman$elm_css$Css$maxHeight(
+						A3(
+							$rtfeldman$elm_css$Css$calc,
+							$rtfeldman$elm_css$Css$pct(100),
+							$rtfeldman$elm_css$Css$minus,
+							$author$project$Styles$toPx($author$project$Styles$listHeaderHeight + $author$project$Styles$listFooterHeight))),
+						$rtfeldman$elm_css$Css$listStyle($rtfeldman$elm_css$Css$none),
+						$rtfeldman$elm_css$Css$margin($rtfeldman$elm_css$Css$zero),
+						$rtfeldman$elm_css$Css$padding($rtfeldman$elm_css$Css$zero),
+						$rtfeldman$elm_css$Css$overflowY($rtfeldman$elm_css$Css$auto),
 						$rtfeldman$elm_css$Css$Global$children(
 						_List_fromArray(
 							[
 								A2(
-								$rtfeldman$elm_css$Css$Global$typeSelector,
-								'ul',
+								$rtfeldman$elm_css$Css$Global$selector,
+								'li:not(:last-child)',
 								_List_fromArray(
 									[
-										$rtfeldman$elm_css$Css$maxHeight(
-										A3(
-											$rtfeldman$elm_css$Css$calc,
-											$rtfeldman$elm_css$Css$pct(100),
-											$rtfeldman$elm_css$Css$minus,
-											A3(
-												$rtfeldman$elm_css$Css$calc,
-												$author$project$Styles$toPx($author$project$Styles$listHeaderHeight),
-												$rtfeldman$elm_css$Css$plus,
-												$author$project$Styles$toPx($author$project$Styles$listFooterHeight)))),
-										$rtfeldman$elm_css$Css$listStyle($rtfeldman$elm_css$Css$none),
-										$rtfeldman$elm_css$Css$margin($rtfeldman$elm_css$Css$zero),
-										$rtfeldman$elm_css$Css$padding($rtfeldman$elm_css$Css$zero),
-										$rtfeldman$elm_css$Css$overflowY($rtfeldman$elm_css$Css$auto),
+										$rtfeldman$elm_css$Css$marginBottom(
+										$author$project$Styles$toPx($author$project$Styles$gap))
+									])),
+								A2(
+								$rtfeldman$elm_css$Css$Global$typeSelector,
+								'li',
+								_List_fromArray(
+									[
+										$rtfeldman$elm_css$Css$backgroundColor(secondaryStyle.dark),
+										$rtfeldman$elm_css$Css$padding(
+										$author$project$Styles$toPx($author$project$Styles$gap)),
+										$rtfeldman$elm_css$Css$borderRadius(
+										$author$project$Styles$toPx($author$project$Styles$cardBorderRadius)),
+										A4(
+										$rtfeldman$elm_css$Css$boxShadow4,
+										$rtfeldman$elm_css$Css$zero,
+										$rtfeldman$elm_css$Css$px(1),
+										$rtfeldman$elm_css$Css$px(1),
+										A4($rtfeldman$elm_css$Css$rgba, 0, 0, 0, 0.1)),
 										$rtfeldman$elm_css$Css$Global$children(
 										_List_fromArray(
 											[
 												A2(
-												$rtfeldman$elm_css$Css$Global$selector,
-												'li:not(:last-child)',
-												_List_fromArray(
-													[
-														$rtfeldman$elm_css$Css$marginBottom(
-														$author$project$Styles$toPx($author$project$Styles$gap))
-													])),
-												A2(
 												$rtfeldman$elm_css$Css$Global$typeSelector,
-												'li',
+												'img',
 												_List_fromArray(
 													[
-														$rtfeldman$elm_css$Css$backgroundColor(secondaryStyle.dark),
-														$rtfeldman$elm_css$Css$padding(
-														$author$project$Styles$toPx($author$project$Styles$gap)),
-														$rtfeldman$elm_css$Css$borderRadius(
-														$author$project$Styles$toPx($author$project$Styles$cardBorderRadius)),
+														$rtfeldman$elm_css$Css$display($rtfeldman$elm_css$Css$block),
+														$rtfeldman$elm_css$Css$width(
+														A3(
+															$rtfeldman$elm_css$Css$calc,
+															$rtfeldman$elm_css$Css$pct(100),
+															$rtfeldman$elm_css$Css$plus,
+															$author$project$Styles$toPx(2 * $author$project$Styles$gap))),
 														A4(
-														$rtfeldman$elm_css$Css$boxShadow4,
+														$rtfeldman$elm_css$Css$margin4,
+														$author$project$Styles$toPx(0 - $author$project$Styles$gap),
 														$rtfeldman$elm_css$Css$zero,
-														$rtfeldman$elm_css$Css$px(1),
-														$rtfeldman$elm_css$Css$px(1),
-														A4($rtfeldman$elm_css$Css$rgba, 0, 0, 0, 0.1)),
-														$rtfeldman$elm_css$Css$Global$children(
-														_List_fromArray(
-															[
-																A2(
-																$rtfeldman$elm_css$Css$Global$typeSelector,
-																'img',
-																_List_fromArray(
-																	[
-																		$rtfeldman$elm_css$Css$display($rtfeldman$elm_css$Css$block),
-																		$rtfeldman$elm_css$Css$width(
-																		A3(
-																			$rtfeldman$elm_css$Css$calc,
-																			$rtfeldman$elm_css$Css$pct(100),
-																			$rtfeldman$elm_css$Css$plus,
-																			$author$project$Styles$toPx(2 * $author$project$Styles$gap))),
-																		A4(
-																		$rtfeldman$elm_css$Css$margin4,
-																		$author$project$Styles$toPx(0 - $author$project$Styles$gap),
-																		$rtfeldman$elm_css$Css$zero,
-																		$author$project$Styles$toPx($author$project$Styles$gap),
-																		$author$project$Styles$toPx(0 - $author$project$Styles$gap)),
-																		$rtfeldman$elm_css$Css$borderTopLeftRadius(
-																		$author$project$Styles$toPx($author$project$Styles$cardBorderRadius)),
-																		$rtfeldman$elm_css$Css$borderTopRightRadius(
-																		$author$project$Styles$toPx($author$project$Styles$cardBorderRadius))
-																	]))
-															]))
+														$author$project$Styles$toPx($author$project$Styles$gap),
+														$author$project$Styles$toPx(0 - $author$project$Styles$gap)),
+														$rtfeldman$elm_css$Css$borderTopLeftRadius(
+														$author$project$Styles$toPx($author$project$Styles$cardBorderRadius)),
+														$rtfeldman$elm_css$Css$borderTopRightRadius(
+														$author$project$Styles$toPx($author$project$Styles$cardBorderRadius))
 													]))
 											]))
 									]))
@@ -13772,11 +13758,7 @@ var $author$project$Styles$style = function (_v0) {
 							$rtfeldman$elm_css$Css$calc,
 							$rtfeldman$elm_css$Css$pct(100),
 							$rtfeldman$elm_css$Css$minus,
-							A3(
-								$rtfeldman$elm_css$Css$calc,
-								$author$project$Styles$toPx($author$project$Styles$gap),
-								$rtfeldman$elm_css$Css$plus,
-								$author$project$Styles$toPx($author$project$Styles$scrollBarThickNess)))),
+							$author$project$Styles$toPx($author$project$Styles$gap + $author$project$Styles$scrollBarThickNess))),
 						$rtfeldman$elm_css$Css$width(
 						$author$project$Styles$toPx($author$project$Styles$listWidth)),
 						$rtfeldman$elm_css$Css$Global$children(
@@ -13791,11 +13773,7 @@ var $author$project$Styles$style = function (_v0) {
 										$rtfeldman$elm_css$Css$padding2,
 										$rtfeldman$elm_css$Css$zero,
 										$author$project$Styles$toPx($author$project$Styles$gap))
-									]))
-							])),
-						$rtfeldman$elm_css$Css$Global$children(
-						_List_fromArray(
-							[
+									])),
 								A2(
 								$rtfeldman$elm_css$Css$Global$typeSelector,
 								'header',
@@ -14491,17 +14469,7 @@ var $author$project$Main$displayList = F2(
 						[
 							$elm$html$Html$text(stateAsString)
 						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class(
-							'board--column--content board--column--content__' + $elm$core$String$toLower(stateAsString))
-						]),
-					_List_fromArray(
-						[
-							$author$project$Main$displayTasksInList(tasks)
-						])),
+					$author$project$Main$displayTasksInList(tasks),
 					A2(
 					$elm$html$Html$footer,
 					_List_Nil,
@@ -14578,6 +14546,9 @@ var $author$project$Main$viewBoard = function (model) {
 						$author$project$KandoroTask$Todo,
 						_List_fromArray(
 							[
+								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
+								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
+								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
 								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil),
 								A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Ideally there should ne some persistence aka backend, drag and drop and a single item in Doing allowed.', _List_Nil)
 							])),
