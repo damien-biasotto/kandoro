@@ -57,11 +57,11 @@ init _ url key =
 
 type Msg
     = Tick Time.Posix
-    | StartTimer T.Timer
-    | PauseTimer T.Timer
-    | RestartTimer T.Timer
-    | EndTimer T.Timer
-    | AddTimestamp Time.Posix
+    | StartTimer KTask
+    | PauseTimer KTask
+    | RestartTimer KTask
+    | EndTimer KTask
+    | AddTimestamp KTask Time.Posix
     | AdjustTimeZone Time.Zone
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
@@ -82,15 +82,15 @@ updateTimers msg tasks =
     List.map (\task -> setTimer task (Tuple.first (T.update <| msg (getTimer task)))) tasks
 
 
-updateTimer : (T.Timer -> T.Msg) -> T.Timer -> List KTask -> List KTask
-updateTimer msg timer tasks =
+updateTimer : (T.Timer -> T.Msg) -> KTask -> List KTask -> List KTask
+updateTimer msg task tasks =
     List.map
-        (\task ->
-            if timer == getTimer task then
-                setTimer task (Tuple.first (T.update <| msg <| getTimer task))
+        (\t ->
+            if getId t == getId task then
+                setTimer task (Tuple.first (T.update <| msg <| getTimer t))
 
             else
-                task
+                t
         )
         tasks
 
@@ -102,22 +102,22 @@ update msg model =
             ( { model | timezone = zone }, Cmd.none )
 
         Tick _ ->
-            ( { model | tasks = updateTimers T.Update model.tasks }, Task.perform AddTimestamp Time.now )
+            ( { model | tasks = updateTimers T.Update model.tasks }, Cmd.batch <| List.map (\task -> Task.perform (AddTimestamp task) Time.now) model.tasks )
 
-        StartTimer timer ->
-            ( { model | tasks = updateTimer T.Start timer model.tasks }, Task.perform AddTimestamp Time.now )
+        StartTimer task ->
+            ( { model | tasks = updateTimer T.Start task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        PauseTimer timer ->
-            ( { model | tasks = updateTimer T.Pause timer model.tasks }, Task.perform AddTimestamp Time.now )
+        PauseTimer task ->
+            ( { model | tasks = updateTimer T.Pause task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        RestartTimer timer ->
-            ( { model | tasks = updateTimer T.Restart timer model.tasks }, Task.perform AddTimestamp Time.now )
+        RestartTimer task ->
+            ( { model | tasks = updateTimer T.Restart task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        EndTimer timer ->
-            ( { model | tasks = updateTimer T.End timer model.tasks }, Task.perform AddTimestamp Time.now )
+        EndTimer task ->
+            ( { model | tasks = updateTimer T.End task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        AddTimestamp time ->
-            ( { model | tasks = updateTimers (T.TimestampTransition time) model.tasks }, Cmd.none )
+        AddTimestamp task time ->
+            ( { model | tasks = updateTimer (T.TimestampTransition time) task model.tasks }, Cmd.none )
 
         LinkClicked urlRequest ->
             case urlRequest of
@@ -183,9 +183,9 @@ displayTaskAsListItem task =
         [ h4 [] [ text <| getTitle task ]
         , p [] [ text <| getDescription task ]
         , footer []
-            [ button [ onClick (StartTimer <| getTimer task) ] [ text "Start Task" ]
-            , button [ onClick (PauseTimer <| getTimer task) ] [ text "Pause task" ]
-            , button [ onClick (RestartTimer <| getTimer task) ] [ text "Reset task" ]
+            [ button [ onClick (StartTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PauseTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartTimer task) ] [ text "Reset task" ]
             ]
         ]
 
@@ -208,9 +208,9 @@ viewTask task =
             ]
         , p [] [ text <| getDescription task ]
         , footer []
-            [ button [ onClick (StartTimer <| getTimer task) ] [ text "Start Task" ]
-            , button [ onClick (PauseTimer <| getTimer task) ] [ text "Pause task" ]
-            , button [ onClick (RestartTimer <| getTimer task) ] [ text "Reset task" ]
+            [ button [ onClick (StartTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PauseTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartTimer task) ] [ text "Reset task" ]
             ]
         ]
 
