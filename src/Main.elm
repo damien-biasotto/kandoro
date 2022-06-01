@@ -43,10 +43,11 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
     ( { tasks =
-            [ setState K.Doing <| newTask "Implement Drag and Drop" "To allow a task to change its state and update timer" []
+            [ setState K.Done <| newTask "Implement Drag and Drop" "To allow a task to change its state and update timer" []
             , newTask "Add UI to CRUD tasks" "Welp, at some point we should be able to add/edit/remove tasks" []
             , newTask "Audio feedback when transitioning" "So we know in which cycle we are (focus/ break/ longbreak)" []
-            , newTask "Allow a task to change its state" "Any state can be set on a task." []
+            , newTask "Allow a task in progress to be paused / resumed." "" []
+            , newTask "Restrict the number of in progress tasks" "Pick the number from the config (or use default one)" []
             , newTask "Add persistence" "Leverage local storage as config and data storage.." []
             , newTask "Persistence part 2" "Use a backend to store stuff in database Keep the frontend storage for initial rendering?." []
             , newTask "Finish kandoro" "Use it." []
