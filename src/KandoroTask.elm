@@ -1,4 +1,4 @@
-module KandoroTask exposing (Comment, KTask, State(..), Tag, Transition, getDescription, getTimer, setTimer, getTitle, newTask, stateToString, getId, getState)
+module KandoroTask exposing (Comment, KTask, State(..), Tag, Transition, getDescription, getTimer, setTimer, getTitle, newTask, stateToString, getId, getState, setState)
 
 import Time exposing (Posix)
 import Timer exposing (Timer, newTimer)
@@ -117,3 +117,7 @@ stateToString state =
 setTimer : KTask -> Timer -> KTask
 setTimer (Task task) timer =
     (Task {task| timer = timer})
+
+setState : State -> KTask -> KTask
+setState state (Task task) =
+    Task {task | state = state }

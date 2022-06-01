@@ -3,18 +3,19 @@ module Main exposing (..)
 import Browser
 import Browser.Navigation as Nav
 import Css exposing (..)
-import Html exposing (Html, button, div, footer, h1, h2, h4, header, li, nav, p, text, ul)
+import Html exposing (Html, button, div, footer, h1, h4, header, li, nav, p, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
-import Html.Keyed as Keyed
+import Html.Keyed as Keyed exposing (ul)
 import Html.Lazy exposing (lazy)
 import Html.Styled exposing (toUnstyled)
-import KandoroTask exposing (KTask, State, getDescription, getId, getState, getTimer, getTitle, newTask, setTimer)
+import Html5.DragDrop as DragDrop
+import KandoroTask as K exposing (KTask, State, getDescription, getId, getState, getTimer, getTitle, newTask, setState, setTimer)
 import Styles exposing (defaultPalette, style)
 import Task
 import Time exposing (utc)
 import Timer as T exposing (Msg, State(..), update)
-import UUID
+import UUID exposing (UUID)
 import Url
 
 
@@ -33,6 +34,7 @@ main =
 type alias Model =
     { tasks : List KTask
     , timezone : Time.Zone
+    , dragDrop : DragDrop.Model UUID K.State
     , key : Nav.Key
     , url : Url.Url
     }
@@ -41,7 +43,9 @@ type alias Model =
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
     ( { tasks =
-            [ newTask "Implement Drag and Drop" "To allow a task to change its state and update timer" []
+            [ setState K.Doing <| newTask "Implement Drag and Drop" "To allow a task to change its state and update timer" []
+            , newTask "Add UI to CRUD tasks" "Welp, at some point we should be able to add/edit/remove tasks" []
+            , newTask "Audio feedback when transitioning" "So we know in which cycle we are (focus/ break/ longbreak)" []
             , newTask "Allow a task to change its state" "Any state can be set on a task." []
             , newTask "Add persistence" "Leverage local storage as config and data storage.." []
             , newTask "Persistence part 2" "Use a backend to store stuff in database Keep the frontend storage for initial rendering?." []
@@ -50,6 +54,7 @@ init _ url key =
       , timezone = utc
       , key = key
       , url = url
+      , dragDrop = DragDrop.init
       }
     , Task.perform AdjustTimeZone Time.here
     )
@@ -65,6 +70,7 @@ type Msg
     | AdjustTimeZone Time.Zone
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
+    | DragDropMsg (DragDrop.Msg UUID K.State)
 
 
 getTasksWithRunningTimers : Model -> List KTask
@@ -132,6 +138,53 @@ update msg model =
             , Cmd.none
             )
 
+        DragDropMsg msg_ ->
+            let
+                ( model_, result ) =
+                    DragDrop.update msg_ model.dragDrop
+            in
+            ( { model
+                | dragDrop = model_
+                , tasks =
+                    case result of
+                        Nothing ->
+                            model.tasks
+
+                        Just ( taskId, state, _ ) ->
+                            List.map
+                                (\t ->
+                                    if taskId == getId t then
+                                        K.setState state t
+
+                                    else
+                                        t
+                                )
+                                model.tasks
+              }
+            , Cmd.none
+            )
+
+
+getTaskWithRunningTimer : Model -> Maybe KTask
+getTaskWithRunningTimer model =
+    List.head <|
+        List.filter
+            (\task ->
+                case T.getState (getTimer task) of
+                    T.Running ->
+                        True
+
+                    T.ShortBreak ->
+                        True
+
+                    T.LongBreak ->
+                        True
+
+                    _ ->
+                        False
+            )
+            model.tasks
+
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -144,32 +197,46 @@ viewBoard model =
         [ nav [ class "navbar--app-bar" ]
             [ h1 [] [ text "Kandoro" ]
             ]
-        , nav [ class "navbar--board-bar" ] []
+        , nav [ class "navbar--board-bar" ] [ displayTimer <| getTaskWithRunningTimer model ]
         , div [ class "board--content" ]
-            [ displayList KandoroTask.Todo model.tasks
-            , displayList KandoroTask.Doing model.tasks
-            , displayList KandoroTask.Done model.tasks
-            , displayList KandoroTask.Blocked model.tasks
+            [ displayList K.Todo model.tasks
+            , displayList K.Doing model.tasks
+            , displayList K.Done model.tasks
+            , displayList K.Blocked model.tasks
             ]
         ]
 
 
-displayList : KandoroTask.State -> List KTask -> Html Msg
+displayTimer : Maybe KTask -> Html Msg
+displayTimer task =
+    case task of
+        Just t ->
+            p [] [ text <| " Task " ++ getTitle t ++ " is in progress. - " ++ T.toString (getTimer t) ]
+
+        Nothing ->
+            p [] []
+
+
+displayList : K.State -> List KTask -> Html Msg
 displayList state tasks =
     let
         stateAsString =
-            KandoroTask.stateToString state
+            K.stateToString state
     in
-    div [ class <| "board--column board--column__" ++ String.toLower stateAsString ]
+    div
+        ([ class <| "board--column board--column__" ++ String.toLower stateAsString
+         ]
+            ++ DragDrop.droppable DragDropMsg state
+        )
         [ header [] [ text stateAsString ]
-        , displayTasksInList <| List.filter (\task -> state == getState task) tasks
+        , displayTasksInList state (List.filter (\task -> state == getState task) tasks)
         , footer [] [ text "Add a task" ]
         ]
 
 
-displayTasksInList : List KTask -> Html Msg
-displayTasksInList tasks =
-    Keyed.ul [] (List.map displayKeyedTaskAsListItem tasks)
+displayTasksInList : K.State -> List KTask -> Html Msg
+displayTasksInList state tasks =
+    ul [] (List.map displayKeyedTaskAsListItem tasks)
 
 
 displayKeyedTaskAsListItem : KTask -> ( String, Html Msg )
@@ -179,7 +246,7 @@ displayKeyedTaskAsListItem task =
 
 displayTaskAsListItem : KTask -> Html Msg
 displayTaskAsListItem task =
-    li []
+    li (DragDrop.draggable DragDropMsg (getId task))
         [ h4 [] [ text <| getTitle task ]
         , p [] [ text <| getDescription task ]
         , footer []
