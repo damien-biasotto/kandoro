@@ -12,7 +12,7 @@ import Html.Styled exposing (toUnstyled)
 import Html5.DragDrop as DragDrop
 import KandoroTask as K exposing (KTask, State, getDescription, getId, getState, getTimer, getTitle, newTask, setState, setTimer)
 import Styles exposing (defaultPalette, style)
-import Task
+import Task exposing (Task)
 import Time exposing (utc)
 import Timer as T exposing (Msg, State(..), update)
 import UUID exposing (UUID)
@@ -61,13 +61,14 @@ init _ url key =
 
 
 type Msg
-    = Tick Time.Posix
-    | StartTimer KTask
-    | PauseTimer KTask
-    | RestartTimer KTask
-    | EndTimer KTask
+    = Ticked Time.Posix
+    | StartedTimer KTask
+    | PausedTimer KTask
+    | RestartedTimer KTask
+    | EndedTimer KTask
     | AddTimestamp KTask Time.Posix
     | AdjustTimeZone Time.Zone
+    | TaskStateChanged KTask K.State
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
     | DragDropMsg (DragDrop.Msg UUID K.State)
@@ -107,23 +108,39 @@ update msg model =
         AdjustTimeZone zone ->
             ( { model | timezone = zone }, Cmd.none )
 
-        Tick _ ->
+        Ticked _ ->
             ( { model | tasks = updateTimers T.Update model.tasks }, Cmd.batch <| List.map (\task -> Task.perform (AddTimestamp task) Time.now) model.tasks )
 
-        StartTimer task ->
+        StartedTimer task ->
             ( { model | tasks = updateTimer T.Start task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        PauseTimer task ->
+        PausedTimer task ->
             ( { model | tasks = updateTimer T.Pause task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        RestartTimer task ->
+        RestartedTimer task ->
             ( { model | tasks = updateTimer T.Restart task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
-        EndTimer task ->
+        EndedTimer task ->
             ( { model | tasks = updateTimer T.End task model.tasks }, Task.perform (AddTimestamp task) Time.now )
 
         AddTimestamp task time ->
             ( { model | tasks = updateTimer (T.TimestampTransition time) task model.tasks }, Cmd.none )
+
+        TaskStateChanged task state ->
+            ( model
+            , case state of
+                K.Todo ->
+                    Task.perform RestartedTimer (Task.succeed task)
+
+                K.Doing ->
+                    Task.perform StartedTimer (Task.succeed task)
+
+                K.Done ->
+                    Task.perform EndedTimer (Task.succeed task)
+
+                K.Blocked ->
+                    Task.perform PausedTimer (Task.succeed task)
+            )
 
         LinkClicked urlRequest ->
             case urlRequest of
@@ -143,26 +160,39 @@ update msg model =
                 ( model_, result ) =
                     DragDrop.update msg_ model.dragDrop
             in
-            ( { model
-                | dragDrop = model_
-                , tasks =
-                    case result of
+            case result of
+                Nothing ->
+                    ( { model | dragDrop = model_ }, Cmd.none )
+
+                Just ( taskId, state, _ ) ->
+                    let
+                        taskMaybe =
+                            List.head <| List.filter (\t -> taskId == getId t) model.tasks
+                    in
+                    case taskMaybe of
                         Nothing ->
-                            model.tasks
+                            ( { model | dragDrop = model_ }, Cmd.none )
 
-                        Just ( taskId, state, _ ) ->
-                            List.map
-                                (\t ->
-                                    if taskId == getId t then
-                                        K.setState state t
+                        Just task ->
+                            let
+                                updatedTask =
+                                    K.setState state task
+                            in
+                            ( { model
+                                | dragDrop = model_
+                                , tasks =
+                                    List.map
+                                        (\t ->
+                                            if taskId == getId t then
+                                                updatedTask
 
-                                    else
-                                        t
-                                )
-                                model.tasks
-              }
-            , Cmd.none
-            )
+                                            else
+                                                t
+                                        )
+                                        model.tasks
+                              }
+                            , Task.perform (TaskStateChanged updatedTask) (Task.succeed state)
+                            )
 
 
 getTaskWithRunningTimer : Model -> Maybe KTask
@@ -188,7 +218,7 @@ getTaskWithRunningTimer model =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every 1000 Tick
+    Time.every 1000 Ticked
 
 
 viewBoard : Model -> Html Msg
@@ -250,9 +280,9 @@ displayTaskAsListItem task =
         [ h4 [] [ text <| getTitle task ]
         , p [] [ text <| getDescription task ]
         , footer []
-            [ button [ onClick (StartTimer task) ] [ text "Start Task" ]
-            , button [ onClick (PauseTimer task) ] [ text "Pause task" ]
-            , button [ onClick (RestartTimer task) ] [ text "Reset task" ]
+            [ button [ onClick (StartedTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PausedTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartedTimer task) ] [ text "Reset task" ]
             ]
         ]
 
@@ -275,9 +305,9 @@ viewTask task =
             ]
         , p [] [ text <| getDescription task ]
         , footer []
-            [ button [ onClick (StartTimer task) ] [ text "Start Task" ]
-            , button [ onClick (PauseTimer task) ] [ text "Pause task" ]
-            , button [ onClick (RestartTimer task) ] [ text "Reset task" ]
+            [ button [ onClick (StartedTimer task) ] [ text "Start Task" ]
+            , button [ onClick (PausedTimer task) ] [ text "Pause task" ]
+            , button [ onClick (RestartedTimer task) ] [ text "Reset task" ]
             ]
         ]
 
