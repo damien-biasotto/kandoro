@@ -11755,6 +11755,7 @@ var $author$project$Main$init = F3(
 						A3($author$project$KandoroTask$newTask, 'Restrict the number of in progress tasks', 'Pick the number from the config (or use default one)', _List_Nil),
 						A3($author$project$KandoroTask$newTask, 'Add persistence', 'Leverage local storage as config and data storage..', _List_Nil),
 						A3($author$project$KandoroTask$newTask, 'Persistence part 2', 'Use a backend to store stuff in database Keep the frontend storage for initial rendering?.', _List_Nil),
+						A3($author$project$KandoroTask$newTask, 'Show stats about tasks', 'get stats for a given task and its timer', _List_Nil),
 						A3($author$project$KandoroTask$newTask, 'Finish kandoro', 'Use it.', _List_Nil)
 					]),
 				timezone: $elm$time$Time$utc,

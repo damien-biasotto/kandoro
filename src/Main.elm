@@ -50,6 +50,7 @@ init _ url key =
             , newTask "Restrict the number of in progress tasks" "Pick the number from the config (or use default one)" []
             , newTask "Add persistence" "Leverage local storage as config and data storage.." []
             , newTask "Persistence part 2" "Use a backend to store stuff in database Keep the frontend storage for initial rendering?." []
+            , newTask "Show stats about tasks" "get stats for a given task and its timer" []
             , newTask "Finish kandoro" "Use it." []
             ]
       , timezone = utc
