@@ -11,6 +11,9 @@ let
     nodejs
     elm2nix
     watch
+    emacs
+    tig
+    gitui
   ];
 
 in
