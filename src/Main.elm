@@ -10,7 +10,7 @@ import Html.Keyed as Keyed exposing (ul)
 import Html.Lazy exposing (lazy)
 import Html.Styled exposing (toUnstyled)
 import Html5.DragDrop as DragDrop
-import KandoroTask as K exposing (KTask, State, getDescription, getId, getState, getTimer, getTitle, newTask, setState, setTimer)
+import KandoroTask as K exposing (KTask, State(..), Transition(..), getDescription, getId, getState, getTimer, getTitle, getTransitions, newTask, setState, setTimer)
 import Styles exposing (defaultPalette, style)
 import Task exposing (Task)
 import Time exposing (utc)
@@ -37,6 +37,7 @@ type alias Model =
     , dragDrop : DragDrop.Model UUID K.State
     , key : Nav.Key
     , url : Url.Url
+    , showModalForTaskCreation : Maybe K.State
     }
 
 
@@ -57,6 +58,7 @@ init _ url key =
       , key = key
       , url = url
       , dragDrop = DragDrop.init
+      , showModalForTaskCreation = Nothing
       }
     , Task.perform AdjustTimeZone Time.here
     )
@@ -74,6 +76,7 @@ type Msg
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
     | DragDropMsg (DragDrop.Msg UUID K.State)
+    | ShowModalTaskForm K.State
 
 
 getTasksWithRunningTimers : Model -> List KTask
@@ -104,6 +107,22 @@ updateTimer msg task tasks =
         tasks
 
 
+taskHasTransitionWithoutTimestamp : KTask -> Bool
+taskHasTransitionWithoutTimestamp task =
+    case List.head <| List.reverse <| getTransitions task of
+        Nothing ->
+            False
+
+        Just (K.StateWithoutTime _) ->
+            True
+
+        Just (K.OrderWithoutTime _) ->
+            True
+
+        Just _ ->
+            False
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -111,7 +130,7 @@ update msg model =
             ( { model | timezone = zone }, Cmd.none )
 
         Ticked _ ->
-            ( { model | tasks = updateTimers T.Update model.tasks }, Cmd.batch <| List.map (\task -> Task.perform (AddTimestamp task) Time.now) model.tasks )
+            ( { model | tasks = updateTimers T.Update model.tasks }, Cmd.batch <| List.map (\task -> Task.perform (AddTimestamp task) Time.now) <| List.filter taskHasTransitionWithoutTimestamp model.tasks )
 
         StartedTimer task ->
             ( { model | tasks = updateTimer T.Start task model.tasks }, Task.perform (AddTimestamp task) Time.now )
@@ -156,6 +175,9 @@ update msg model =
             ( { model | url = url }
             , Cmd.none
             )
+
+        ShowModalTaskForm state ->
+            ( { model | showModalForTaskCreation = Just state }, Cmd.none )
 
         DragDropMsg msg_ ->
             let
@@ -256,13 +278,13 @@ displayList state tasks =
             K.stateToString state
     in
     div
-        ([ class <| "board--column board--column__" ++ String.toLower stateAsString
-         ]
-            ++ DragDrop.droppable DragDropMsg state
+        ((class <| "board--column board--column__" ++ String.toLower stateAsString)
+            :: DragDrop.droppable DragDropMsg
+                state
         )
         [ header [] [ text stateAsString ]
         , displayTasksInList state (List.filter (\task -> state == getState task) tasks)
-        , footer [] [ text "Add a task" ]
+        , footer [ onClick <| ShowModalTaskForm state ] [ text "Add a task" ]
         ]
 
 

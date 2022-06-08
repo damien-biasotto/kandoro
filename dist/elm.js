@@ -11743,6 +11743,7 @@ var $author$project$Main$init = F3(
 			{
 				dragDrop: $norpan$elm_html5_drag_drop$Html5$DragDrop$init,
 				key: key,
+				showModalForTaskCreation: $elm$core$Maybe$Nothing,
 				tasks: _List_fromArray(
 					[
 						A2(
@@ -12005,6 +12006,27 @@ var $elm$core$List$head = function (list) {
 };
 var $elm$browser$Browser$Navigation$load = _Browser_load;
 var $elm$browser$Browser$Navigation$pushUrl = _Browser_pushUrl;
+var $author$project$KandoroTask$getTransitions = function (_v0) {
+	var task = _v0.a;
+	return task.transitions;
+};
+var $author$project$Main$taskHasTransitionWithoutTimestamp = function (task) {
+	var _v0 = $elm$core$List$head(
+		$elm$core$List$reverse(
+			$author$project$KandoroTask$getTransitions(task)));
+	if (_v0.$ === 'Nothing') {
+		return false;
+	} else {
+		switch (_v0.a.$) {
+			case 'StateWithoutTime':
+				return true;
+			case 'OrderWithoutTime':
+				return true;
+			default:
+				return false;
+		}
+	}
+};
 var $elm$url$Url$addPort = F2(
 	function (maybePort, starter) {
 		if (maybePort.$ === 'Nothing') {
@@ -12483,7 +12505,7 @@ var $author$project$Main$update = F2(
 									$author$project$Main$AddTimestamp(task),
 									$elm$time$Time$now);
 							},
-							model.tasks)));
+							A2($elm$core$List$filter, $author$project$Main$taskHasTransitionWithoutTimestamp, model.tasks))));
 			case 'StartedTimer':
 				var task = msg.a;
 				return _Utils_Tuple2(
@@ -12597,6 +12619,15 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{url: url}),
+					$elm$core$Platform$Cmd$none);
+			case 'ShowModalTaskForm':
+				var state = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							showModalForTaskCreation: $elm$core$Maybe$Just(state)
+						}),
 					$elm$core$Platform$Cmd$none);
 			default:
 				var msg_ = msg.a;
@@ -15738,6 +15769,9 @@ var $author$project$KandoroTask$Doing = {$: 'Doing'};
 var $author$project$Main$DragDropMsg = function (a) {
 	return {$: 'DragDropMsg', a: a};
 };
+var $author$project$Main$ShowModalTaskForm = function (a) {
+	return {$: 'ShowModalTaskForm', a: a};
+};
 var $norpan$elm_html5_drag_drop$Html5$DragDrop$DragEnd = {$: 'DragEnd'};
 var $norpan$elm_html5_drag_drop$Html5$DragDrop$DragStart = F2(
 	function (a, b) {
@@ -16129,12 +16163,10 @@ var $author$project$Main$displayList = F2(
 		var stateAsString = $author$project$KandoroTask$stateToString(state);
 		return A2(
 			$elm$html$Html$div,
-			_Utils_ap(
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class(
-						'board--column board--column__' + $elm$core$String$toLower(stateAsString))
-					]),
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class(
+					'board--column board--column__' + $elm$core$String$toLower(stateAsString)),
 				A2($norpan$elm_html5_drag_drop$Html5$DragDrop$droppable, $author$project$Main$DragDropMsg, state)),
 			_List_fromArray(
 				[
@@ -16158,7 +16190,11 @@ var $author$project$Main$displayList = F2(
 						tasks)),
 					A2(
 					$elm$html$Html$footer,
-					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$Events$onClick(
+							$author$project$Main$ShowModalTaskForm(state))
+						]),
 					_List_fromArray(
 						[
 							$elm$html$Html$text('Add a task')
@@ -16384,4 +16420,4 @@ var $author$project$Main$view = function (model) {
 var $author$project$Main$main = $elm$browser$Browser$application(
 	{init: $author$project$Main$init, onUrlChange: $author$project$Main$UrlChanged, onUrlRequest: $author$project$Main$LinkClicked, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
 _Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"},"Time.Era":{"args":[],"type":"{ start : Basics.Int, offset : Basics.Int }"},"Html5.DragDrop.Position":{"args":[],"type":"{ width : Basics.Int, height : Basics.Int, x : Basics.Int, y : Basics.Int }"},"Json.Decode.Value":{"args":[],"type":"Json.Encode.Value"}},"unions":{"Main.Msg":{"args":[],"tags":{"Ticked":["Time.Posix"],"StartedTimer":["KandoroTask.KTask"],"PausedTimer":["KandoroTask.KTask"],"RestartedTimer":["KandoroTask.KTask"],"EndedTimer":["KandoroTask.KTask"],"AddTimestamp":["KandoroTask.KTask","Time.Posix"],"AdjustTimeZone":["Time.Zone"],"TaskStateChanged":["KandoroTask.KTask","KandoroTask.State"],"UrlChanged":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"DragDropMsg":["Html5.DragDrop.Msg UUID.UUID KandoroTask.State"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"KandoroTask.KTask":{"args":[],"tags":{"Task":["{ id : UUID.UUID, title : String.String, description : String.String, tags : List.List KandoroTask.Tag, state : KandoroTask.State, timer : Timer.Timer, transitions : List.List KandoroTask.Transition, comments : List.List KandoroTask.Comment, order : Basics.Int }"]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"Html5.DragDrop.Msg":{"args":["dragId","dropId"],"tags":{"DragStart":["dragId","Json.Decode.Value"],"DragEnd":[],"DragEnter":["dropId"],"DragLeave":["dropId"],"DragOver":["dropId","Basics.Int","Html5.DragDrop.Position"],"Drop":["dropId","Html5.DragDrop.Position"]}},"Time.Posix":{"args":[],"tags":{"Posix":["Basics.Int"]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"KandoroTask.State":{"args":[],"tags":{"Todo":[],"Doing":[],"Done":[],"Blocked":[]}},"String.String":{"args":[],"tags":{"String":[]}},"UUID.UUID":{"args":[],"tags":{"UUID":["Basics.Int","Basics.Int","Basics.Int","Basics.Int"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Time.Zone":{"args":[],"tags":{"Zone":["Basics.Int","List.List Time.Era"]}},"KandoroTask.Comment":{"args":[],"tags":{"CommentWithoutDate":["{ author : KandoroTask.User, comment : String.String }"],"CommentWithDate":["{ author : KandoroTask.User, comment : String.String, createdAt : Time.Posix }"]}},"List.List":{"args":["a"],"tags":{}},"KandoroTask.Tag":{"args":[],"tags":{"Tag":["String.String"]}},"Timer.Timer":{"args":[],"tags":{"Timer":["{ state : Timer.State, currentValue : Basics.Int, maximumDuration : Timer.Duration, longBreakDuration : Timer.Duration, shortBreakDuration : Timer.Duration, transitions : List.List Timer.Transition }"]}},"KandoroTask.Transition":{"args":[],"tags":{"StateWithoutTime":["( KandoroTask.State, KandoroTask.State )"],"StateWithTime":["( KandoroTask.State, KandoroTask.State, Time.Posix )"],"OrderWithoutTime":["( KandoroTask.Order, KandoroTask.Order )"],"OrderWithTime":["( KandoroTask.Order, KandoroTask.Order, Time.Posix )"]}},"Json.Encode.Value":{"args":[],"tags":{"Value":[]}},"Timer.Duration":{"args":[],"tags":{"Duration":["Basics.Int"]}},"KandoroTask.Order":{"args":[],"tags":{"Order":["KandoroTask.State","Basics.Int"]}},"Timer.State":{"args":[],"tags":{"NotStarted":[],"Running":[],"LongBreak":[],"ShortBreak":[],"Paused":[],"Ended":[],"Reset":[]}},"Timer.Transition":{"args":[],"tags":{"TransitionWithoutTime":["( Timer.State, Timer.State )"],"TransitionWithTime":["( Timer.State, Timer.State, Time.Posix )"]}},"KandoroTask.User":{"args":[],"tags":{"User":["String.String"]}}}}})}});}(this));
+	$elm$json$Json$Decode$succeed(_Utils_Tuple0))({"versions":{"elm":"0.19.1"},"types":{"message":"Main.Msg","aliases":{"Url.Url":{"args":[],"type":"{ protocol : Url.Protocol, host : String.String, port_ : Maybe.Maybe Basics.Int, path : String.String, query : Maybe.Maybe String.String, fragment : Maybe.Maybe String.String }"},"Time.Era":{"args":[],"type":"{ start : Basics.Int, offset : Basics.Int }"},"Html5.DragDrop.Position":{"args":[],"type":"{ width : Basics.Int, height : Basics.Int, x : Basics.Int, y : Basics.Int }"},"Json.Decode.Value":{"args":[],"type":"Json.Encode.Value"}},"unions":{"Main.Msg":{"args":[],"tags":{"Ticked":["Time.Posix"],"StartedTimer":["KandoroTask.KTask"],"PausedTimer":["KandoroTask.KTask"],"RestartedTimer":["KandoroTask.KTask"],"EndedTimer":["KandoroTask.KTask"],"AddTimestamp":["KandoroTask.KTask","Time.Posix"],"AdjustTimeZone":["Time.Zone"],"TaskStateChanged":["KandoroTask.KTask","KandoroTask.State"],"UrlChanged":["Url.Url"],"LinkClicked":["Browser.UrlRequest"],"DragDropMsg":["Html5.DragDrop.Msg UUID.UUID KandoroTask.State"],"ShowModalTaskForm":["KandoroTask.State"]}},"Basics.Int":{"args":[],"tags":{"Int":[]}},"KandoroTask.KTask":{"args":[],"tags":{"Task":["{ id : UUID.UUID, title : String.String, description : String.String, tags : List.List KandoroTask.Tag, state : KandoroTask.State, timer : Timer.Timer, transitions : List.List KandoroTask.Transition, comments : List.List KandoroTask.Comment, order : Basics.Int }"]}},"Maybe.Maybe":{"args":["a"],"tags":{"Just":["a"],"Nothing":[]}},"Html5.DragDrop.Msg":{"args":["dragId","dropId"],"tags":{"DragStart":["dragId","Json.Decode.Value"],"DragEnd":[],"DragEnter":["dropId"],"DragLeave":["dropId"],"DragOver":["dropId","Basics.Int","Html5.DragDrop.Position"],"Drop":["dropId","Html5.DragDrop.Position"]}},"Time.Posix":{"args":[],"tags":{"Posix":["Basics.Int"]}},"Url.Protocol":{"args":[],"tags":{"Http":[],"Https":[]}},"KandoroTask.State":{"args":[],"tags":{"Todo":[],"Doing":[],"Done":[],"Blocked":[]}},"String.String":{"args":[],"tags":{"String":[]}},"UUID.UUID":{"args":[],"tags":{"UUID":["Basics.Int","Basics.Int","Basics.Int","Basics.Int"]}},"Browser.UrlRequest":{"args":[],"tags":{"Internal":["Url.Url"],"External":["String.String"]}},"Time.Zone":{"args":[],"tags":{"Zone":["Basics.Int","List.List Time.Era"]}},"KandoroTask.Comment":{"args":[],"tags":{"CommentWithoutDate":["{ author : KandoroTask.User, comment : String.String }"],"CommentWithDate":["{ author : KandoroTask.User, comment : String.String, createdAt : Time.Posix }"]}},"List.List":{"args":["a"],"tags":{}},"KandoroTask.Tag":{"args":[],"tags":{"Tag":["String.String"]}},"Timer.Timer":{"args":[],"tags":{"Timer":["{ state : Timer.State, currentValue : Basics.Int, maximumDuration : Timer.Duration, longBreakDuration : Timer.Duration, shortBreakDuration : Timer.Duration, transitions : List.List Timer.Transition }"]}},"KandoroTask.Transition":{"args":[],"tags":{"StateWithoutTime":["( KandoroTask.State, KandoroTask.State )"],"StateWithTime":["( KandoroTask.State, KandoroTask.State, Time.Posix )"],"OrderWithoutTime":["( KandoroTask.Order, KandoroTask.Order )"],"OrderWithTime":["( KandoroTask.Order, KandoroTask.Order, Time.Posix )"]}},"Json.Encode.Value":{"args":[],"tags":{"Value":[]}},"Timer.Duration":{"args":[],"tags":{"Duration":["Basics.Int"]}},"KandoroTask.Order":{"args":[],"tags":{"Order":["KandoroTask.State","Basics.Int"]}},"Timer.State":{"args":[],"tags":{"NotStarted":[],"Running":[],"LongBreak":[],"ShortBreak":[],"Paused":[],"Ended":[],"Reset":[]}},"Timer.Transition":{"args":[],"tags":{"TransitionWithoutTime":["( Timer.State, Timer.State )"],"TransitionWithTime":["( Timer.State, Timer.State, Time.Posix )"]}},"KandoroTask.User":{"args":[],"tags":{"User":["String.String"]}}}}})}});}(this));
